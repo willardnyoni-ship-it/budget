@@ -148,6 +148,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 
   <h2>Categories</h2>
   <div class="card" id="catList"></div>
+  <button class="b g" id="catToggle" onclick="toggleCats()" style="margin-bottom:10px"></button>
 
   <h2>Recent</h2>
   <div class="card"><table id="recent"></table></div>
@@ -191,8 +192,14 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 </section>
 
 <!-- ================= IMPORT ================= -->
-<section class="tab" id="t-import">
-  <h1>Import statement</h1>
+<section class="tab" id="t-stmt">
+  <h1>Statements</h1>
+  <div class="seg" id="stmtSeg">
+    <button class="on" data-v="imp">Import</button>
+    <button data-v="rec">Reconcile</button>
+  </div>
+  <div id="pane-imp">
+  <h2>Import a statement</h2>
   <div class="sub">Download the statement PDF from the FNB app, then drop it here. Parsed on your phone; nothing is uploaded.</div>
 
   <div style="height:14px"></div>
@@ -204,26 +211,36 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   </div>
   <div class="msg" id="impMsg"></div>
   <div id="impResult"></div>
+  </div>
+
+  <div id="pane-rec" style="display:none">
+    <div class="sub">Your slips against the bank statement. The statement is always treated as the truth.</div>
+    <div style="height:12px"></div>
+    <div class="seg" id="matchSeg">
+      <button class="on" data-v="all">All time</button>
+      <button data-v="cycle">This cycle</button>
+    </div>
+    <div id="matchBody"></div>
+  </div>
   <div style="height:20px"></div>
 </section>
 
-<!-- ================= MATCH ================= -->
-<section class="tab" id="t-match">
-  <h1>Reconcile</h1>
-  <div class="sub">Your slips against the bank statement. The statement is always treated as the truth.</div>
-
-  <div style="height:12px"></div>
-  <div class="seg" id="matchSeg">
-    <button class="on" data-v="all">All time</button>
-    <button data-v="cycle">This cycle</button>
+<!-- ================= INSIGHTS ================= -->
+<section class="tab" id="t-insight">
+  <h1>Insights</h1>
+  <div class="seg" id="insSeg">
+    <button class="on" data-v="months">Months</button>
+    <button data-v="merch">Merchants</button>
+    <button data-v="rec">Recurring</button>
+    <button data-v="save">Savings</button>
   </div>
-  <div id="matchBody"></div>
+  <div id="insBody"></div>
   <div style="height:20px"></div>
 </section>
 
 <!-- ================= BUDGET ================= -->
-<section class="tab" id="t-budget">
-  <h1>Budget</h1>
+<section class="tab" id="t-setup">
+  <h1>Setup</h1>
   <div class="sub">Income, pay day and category targets.</div>
 
   <div class="card" id="setupCard">
@@ -243,6 +260,13 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <input id="income" type="number" inputmode="decimal" onchange="setIncome(this.value)">
     <label>Pay day (day of month)</label>
     <input id="cycleDay" type="number" min="1" max="28" onchange="setCycleDay(this.value)">
+    <label>Savings goal per month (R)</label>
+    <input id="savingsGoal" type="number" inputmode="decimal" onchange="setGoal(this.value)">
+    <label>Spending pace</label>
+    <div class="seg" style="margin:0">
+      <button id="paceM" onclick="setWeekly(false)">One monthly pot</button>
+      <button id="paceW" onclick="setWeekly(true)">Weekly envelopes</button>
+    </div>
     <div class="row" style="margin-top:14px">
       <div><div class="mini">Budgeted</div><div class="mono" style="font-size:19px;font-weight:700" id="bSum">R0</div></div>
       <div style="text-align:right"><div class="mini">Left to save</div><div class="mono ok" style="font-size:19px;font-weight:700" id="bSave">R0</div></div>
@@ -286,23 +310,16 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   <div style="height:20px"></div>
 </section>
 
-<!-- ================= TRENDS ================= -->
-<section class="tab" id="t-trend">
-  <h1>Trends</h1>
-  <div class="sub">Month by month, once you have data.</div>
-  <div id="trendBody"></div>
-  <div style="height:20px"></div>
-</section>
+
 
 </div>
 
 <nav class="nav">
   <button class="on" data-t="today"><div>&#9679;</div>Today</button>
   <button data-t="snap"><div>&#128247;</div>Snap</button>
-  <button data-t="import"><div>&#8681;</div>Import</button>
-  <button data-t="match"><div>&#8644;</div>Match<span class="dot" id="matchDot"></span></button>
-  <button data-t="budget"><div>&#9636;</div>Budget</button>
-  <button data-t="trend"><div>&#9650;</div>Trends</button>
+  <button data-t="stmt"><div>&#8644;</div>Statements<span class="dot" id="matchDot"></span></button>
+  <button data-t="insight"><div>&#9650;</div>Insights</button>
+  <button data-t="setup"><div>&#9636;</div>Setup</button>
 </nav>
 
 <div class="sheet" id="sheet"><div>
@@ -322,11 +339,14 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
             slip photos            -> IndexedDB (much larger quota)
    ============================================================ */
 
-const KEY = 'wnBudget_v2';
+const KEY = 'wnBudget_v3';
 
 const DEFAULTS = {
   income: 0,
   cycleDay: 1,                 /* day of month you get paid */
+  weekly: false,               /* weekly envelopes instead of one monthly pot */
+  savingsGoal: 0,              /* R per cycle you intend to put away */
+  flows: [],                   /* savings / income movements pulled from statements */
   setupDone: false,
   rules: [],                   /* your own merchant -> category rules, loaded from backup */
   shortcuts: [
@@ -364,7 +384,7 @@ let S = load();
 
 function load(){
   try{
-    const r = localStorage.getItem(KEY) || localStorage.getItem('wnBudget_v1');
+    const r = localStorage.getItem(KEY) || localStorage.getItem('wnBudget_v2') || localStorage.getItem('wnBudget_v1');
     if(r) return Object.assign(structuredClone(DEFAULTS), JSON.parse(r));
   }catch(e){ console.warn('load failed', e); }
   return structuredClone(DEFAULTS);
@@ -403,6 +423,80 @@ function oldestOffset(){
 const inCycle = (t,c) => { const d = new Date(t.d+'T12:00:00');
   return d >= c.s && d <= new Date(c.e.getFullYear(),c.e.getMonth(),c.e.getDate(),23,59); };
 const fmtD = d => d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+
+/* ---------- merchant name normalisation ----------
+   Turns "POS Purchase S2S*Cornershop 400738*0606" into "Cornershop"
+   so the same shop groups together across statements. */
+function merchantOf(note){
+  let m = String(note||'')
+    .replace(/^(POS|Fuel)\s+Purchase\s*/i,'')
+    .replace(/^FNB App\s*/i,'')
+    .replace(/^Payshap (Account Off-Us|Credit)\s*/i,'')
+    .replace(/^\d[\d,]*\.\d{2}\s*/,'')            /* leading "110.00 Canva*" */
+    .replace(/^(s2s|yoco|ccn|hpy|ap|ik|dl|sa|cc)\s*\*\s*/i,'')  /* aggregator prefixes */
+    .replace(/\*.*$/,'')
+    .replace(/\s+\d{4,}.*$/,'')
+    .replace(/\s+\d{1,3}$/,'')
+    .replace(/\s+/g,' ')
+    .trim();
+  return m || '(bank fee)';
+}
+
+/* ---------- recurring charges ----------
+   A charge counts as recurring if the same merchant appears in 2+ different
+   months at a stable amount. Stability matters: groceries repeat but vary,
+   a debit order does not. */
+function recurring(){
+  const g = {};
+  for(const t of S.tx){
+    if(t.mt) continue;
+    const k = merchantOf(t.note).toLowerCase();
+    if(k === '(bank fee)') continue;
+    (g[k] = g[k] || []).push(t);
+  }
+  const out = [];
+  for(const list of Object.values(g)){
+    const months = new Set(list.map(t=>t.d.slice(0,7)));
+    if(months.size < 2) continue;
+    const amts = list.map(t=>t.a).sort((a,b)=>a-b);
+    const med  = amts[Math.floor(amts.length/2)];
+    const tol  = Math.max(3, med*0.12);
+    const stable = amts.filter(a=>Math.abs(a-med) <= tol).length;
+    if(stable < Math.max(2, Math.ceil(list.length*0.6))) continue;
+    const days = list.map(t=>+t.d.slice(8,10)).sort((a,b)=>a-b);
+    out.push({ name: merchantOf(list[0].note), amount: med,
+               day: days[Math.floor(days.length/2)], months: months.size,
+               count: list.length, cat: list[0].c, key: merchantOf(list[0].note).toLowerCase() });
+  }
+  return out.sort((a,b)=> b.amount*b.months - a.amount*a.months);
+}
+
+/* Recurring charges that have not yet landed in the cycle being shown. */
+function dueThisCycle(c, txInCycle){
+  const seen = new Set(txInCycle.map(t=>merchantOf(t.note).toLowerCase()));
+  const today = new Date();
+  const isCurrent = cycleOffset === 0;
+  return recurring().filter(r=>{
+    if(seen.has(r.key)) return false;
+    if(!isCurrent) return false;              /* only forecast the live cycle */
+    /* has its usual day already passed this cycle? if so it is late, still expect it */
+    return true;
+  });
+}
+
+/* ---------- weekly envelopes ---------- */
+function weeksIn(c){ return Math.max(1, Math.ceil(((c.e - c.s)/86400000 + 1)/7)); }
+function weekWindow(c, idx){
+  const s = new Date(c.s); s.setDate(s.getDate() + idx*7);
+  const e = new Date(s);   e.setDate(e.getDate() + 6);
+  if(e > c.e) e.setTime(c.e.getTime());
+  return {s, e};
+}
+function currentWeekIdx(c){
+  const now = new Date();
+  if(now < c.s) return 0;
+  return Math.min(weeksIn(c)-1, Math.floor((now - c.s)/86400000/7));
+}
 
 /* ============================================================
    IndexedDB photo store
@@ -644,6 +738,19 @@ const RULES = [
    and money sent to the Investment account (that is saving, not spending). */
 const SKIP = /transfer from|ob pmt|credit interest|cr int adj|interest adjustment|cash deposit|magtape unpaid|payshap credit|rtc credit|cr\.int\.rate|payment to investment|credit int paid|atm transfer|payment to business/i;
 
+/* Classify the rows we exclude from spending, so savings movements are not simply lost.
+   out = money leaving for savings/investment, in = money coming back out of it. */
+const SAV_OUT = /payment to investment|to savings|transfer to savings/i;
+const SAV_IN  = /transfer from|payshap credit investment|rtc credit investment|atm transfer|cr int adj/i;
+const INCOME  = /ob pmt|salary|cash deposit/i;
+function flowKind(desc, isCr){
+  const d = String(desc||'');
+  if(INCOME.test(d))  return 'income';
+  if(SAV_OUT.test(d) && !isCr) return 'savings-out';
+  if(SAV_IN.test(d)  &&  isCr) return 'savings-in';
+  return null;
+}
+
 function classify(desc){
   const d = String(desc||'').trim();
   if(d === '') return 'Bank fees';                /* unlabelled per-transaction fees */
@@ -720,7 +827,10 @@ async function parsePdf(file){
     if(prevMonth !== null && t.mon < prevMonth - 6) y = year + 1;   /* year rollover */
     prevMonth = t.mon;
     const d = y + '-' + String(t.mon).padStart(2,'0') + '-' + String(t.day).padStart(2,'0');
-    if(t.cr || SKIP.test(t.desc)){ skipped.push({d, a:t.a, desc:t.desc, cr:t.cr}); continue; }
+    if(t.cr || SKIP.test(t.desc)){
+      skipped.push({d, a:t.a, desc:t.desc, cr:t.cr, kind:flowKind(t.desc, t.cr)});
+      continue;
+    }
     out.push({d, a:t.a, desc:t.desc, c:classify(t.desc)});
   }
   return {tx:out, skipped, header};
@@ -754,9 +864,26 @@ function render(){
 
   const fixedTot   = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+x.t,0);
   const fixedSpent = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+(spentBy[x.n]||0),0);
-  const fixedRem   = Math.max(0, fixedTot - fixedSpent);
-  const flexRem    = budTot - spent - fixedRem;
-  const perDay     = flexRem / daysLeft;
+  /* Bills we know are coming but that have not hit yet — treat them as already spent. */
+  const due        = dueThisCycle(c, tx);
+  const dueTot     = due.reduce((a,r)=>a+r.amount,0);
+  const fixedRem   = Math.max(0, fixedTot - fixedSpent, dueTot);
+  let   flexRem    = budTot - spent - fixedRem;
+  let   perDay     = flexRem / daysLeft;
+
+  /* Weekly envelopes: divide what is left across the remaining weeks, then across
+     the days left in this week only. Stops the whole month being spent in week one. */
+  let weekInfo = null;
+  if(S.weekly){
+    const wN = weeksIn(c), wi = currentWeekIdx(c), w = weekWindow(c, wi);
+    const wTx = tx.filter(t=>{ const d=new Date(t.d+'T12:00:00'); return d>=w.s && d<=new Date(w.e.getFullYear(),w.e.getMonth(),w.e.getDate(),23,59); });
+    const wSpent = wTx.reduce((a,t)=>a+t.a,0);
+    const weeksLeft = Math.max(1, wN - wi);
+    const envelope = Math.max(0, budTot - fixedRem - (spent - wSpent)) / weeksLeft;
+    const wDaysLeft = Math.max(1, Math.round((new Date(w.e.getFullYear(),w.e.getMonth(),w.e.getDate(),23,59) - new Date())/86400000) + 1);
+    weekInfo = {idx:wi, of:wN, envelope, spent:wSpent, left:envelope-wSpent, daysLeft:wDaysLeft, w};
+    if(cycleOffset===0){ perDay = weekInfo.left / Math.min(wDaysLeft, daysLeft); flexRem = weekInfo.left; }
+  }
 
   const st = document.getElementById('safeToday');
   const heroLbl = document.querySelector('#t-today .hero .lbl');
@@ -764,10 +891,11 @@ function render(){
     heroLbl.textContent = 'Safe to spend today';
     st.textContent = R(Math.max(0, perDay));
     st.className = 'big ' + (perDay < 0 ? 'bd' : perDay < 120 ? 'wn' : 'ok');
+    const scope = weekInfo ? ('this week (week ' + (weekInfo.idx+1) + ' of ' + weekInfo.of + ')') : 'this month';
     document.getElementById('safeNote').textContent =
-      perDay < 0 ? 'You are ' + R(-flexRem) + ' over. Nothing left for the next ' + daysLeft + ' days.'
-                 : R(Math.max(0,flexRem)) + ' flexible left over ' + daysLeft + ' day' + (daysLeft>1?'s':'')
-                   + ' (' + R(fixedRem) + ' still owed on fixed bills)';
+      perDay < 0 ? 'You are ' + R(-flexRem) + ' over for ' + scope + '.'
+                 : R(Math.max(0,flexRem)) + ' left for ' + scope
+                   + (dueTot ? ' · ' + R(dueTot) + ' of bills still to come' : '');
   } else {
     /* a closed period: safe-to-spend is meaningless, show the outcome instead */
     heroLbl.textContent = 'Spent this period';
@@ -814,7 +942,36 @@ function render(){
   }
   document.getElementById('alerts').innerHTML = alertHtml;
 
-  document.getElementById('catList').innerHTML = S.cats.map(x=>{
+  /* upcoming bills */
+  if(due.length && isNow){
+    alertHtml += '<div class="card" style="margin-top:2px"><div class="row">'
+      + '<div style="font-weight:700">Still to come this month</div>'
+      + '<div class="mono" style="font-weight:700">' + R(dueTot) + '</div></div>'
+      + '<table style="margin-top:6px">' + due.slice(0,6).map(r=>
+          '<tr><td>' + esc(r.name) + '<div class="tag">' + esc(r.cat) + ' &middot; usually around the ' + r.day + 'th</div></td>'
+        + '<td class="r">' + R2(r.amount) + '</td></tr>').join('') + '</table></div>';
+    document.getElementById('alerts').innerHTML = alertHtml;
+  }
+
+  if(weekInfo){
+    const wp = weekInfo.envelope ? Math.min(100, weekInfo.spent/weekInfo.envelope*100) : 0;
+    document.getElementById('alerts').innerHTML = alertHtml
+      + '<div class="card"><div class="row"><div><div class="mini">Week ' + (weekInfo.idx+1) + ' of ' + weekInfo.of + '</div>'
+      + '<div class="mono" style="font-size:19px;font-weight:700">' + R(weekInfo.spent) + ' <span style="color:var(--dim);font-size:13px">of ' + R(weekInfo.envelope) + '</span></div></div>'
+      + '<div style="text-align:right"><div class="mini">Left this week</div><div class="mono ' + (weekInfo.left<0?'bd':'ok')
+      + '" style="font-size:19px;font-weight:700">' + R(weekInfo.left) + '</div></div></div>'
+      + '<div class="bar"><i style="width:' + wp + '%;background:' + (wp>100?'var(--bad)':wp>85?'var(--warn)':'var(--acc)') + '"></i></div></div>';
+  }
+
+  const shownCats = catsExpanded ? S.cats
+      : S.cats.filter(x=> x.t>0 || (spentBy[x.n]||0)>0).slice(0,7);
+  const tog = document.getElementById('catToggle');
+  if(tog){
+    const hidden = S.cats.length - shownCats.length;
+    tog.style.display = hidden>0 || catsExpanded ? '' : 'none';
+    tog.textContent = catsExpanded ? 'Show fewer' : 'Show all ' + S.cats.length + ' categories';
+  }
+  document.getElementById('catList').innerHTML = shownCats.map(x=>{
     const sp = spentBy[x.n]||0, p = x.t ? sp/x.t*100 : (sp?100:0);
     const col = x.t===0 ? 'var(--dim)' : p>100?'var(--bad)':p>85?'var(--warn)':'var(--acc)';
     return '<div class="cat" onclick="catSheet(&quot;'+esc(x.n).replace(/'/g,'&#39;')+'&quot;)">'
@@ -825,17 +982,18 @@ function render(){
 
   const rec = [...active].sort((a,b)=> b.d.localeCompare(a.d) || String(b.id).localeCompare(String(a.id))).slice(0,25);
   document.getElementById('recent').innerHTML = rec.length
-    ? rec.map(t=>'<tr><td><div style="font-weight:600">'+esc(t.note||t.c)+'</div>'
-        +'<div class="tag'+(t.src==='pdf'?' bl':'')+'">'+esc(t.c)+' &middot; '+t.d
+    ? rec.map(t=>'<tr onclick="editTx(&quot;'+t.id+'&quot;)" style="cursor:pointer"><td><div style="font-weight:600">'+esc(t.note||t.c)+'</div>'
+        +'<div class="tag'+(t.c==='Uncategorised'?' wn':t.src==='pdf'?' bl':'')+'">'+esc(t.c)+' &middot; '+t.d
         +(t.src==='pdf'?' &middot; statement':t.photo?' &middot; slip':'')+'</div>'
         +(t.rec?' <span class="tag ok">reconciled</span>':'')+'</td>'
-        +'<td class="r">'+R2(t.a)+'<div class="mini" style="font-weight:400">'
-        +(t.photo?'<a href="#" onclick="viewShot(&quot;'+t.id+'&quot;);return false" style="color:var(--blue);text-decoration:none">view</a> · ':'')
-        +'<a href="#" onclick="del(&quot;'+t.id+'&quot;);return false" style="color:var(--bad);text-decoration:none">remove</a></div></td></tr>').join('')
+        +'<td class="r">'+R2(t.a)+'<div class="mini" style="font-weight:400;color:var(--blue)">edit &rsaquo;</div></td></tr>').join('')
     : '<tr><td class="mini">Nothing logged yet. Snap a slip or import a statement.</td></tr>';
 
   document.getElementById('income').value   = S.income;
   document.getElementById('cycleDay').value = S.cycleDay;
+  const sg = document.getElementById('savingsGoal'); if(sg) sg.value = S.savingsGoal || 0;
+  const pm = document.getElementById('paceM'), pw = document.getElementById('paceW');
+  if(pm){ pm.classList.toggle('on', !S.weekly); pw.classList.toggle('on', !!S.weekly); }
   const sv = S.income - budTot;
   document.getElementById('bSum').textContent = R(budTot);
   const bs = document.getElementById('bSave');
@@ -859,7 +1017,7 @@ function render(){
   const unrec = S.tx.filter(t => isLog(t) && !t.rec).length;
   document.getElementById('matchDot').classList.toggle('on', unrec > 0 && S.tx.some(isStmt));
 
-  renderShortcuts(); renderTrend(); renderMatch(); storeInfo();
+  renderShortcuts(); renderInsights(); renderMatch(); storeInfo();
 }
 
 function latestCycleWithData(){
@@ -891,27 +1049,127 @@ function renderShortcuts(){
     ).join('') + '</div>';
 }
 
-function renderTrend(){
+function renderInsights(){
+  const el = document.getElementById('insBody');
+  if(!el) return;
+  const active = S.tx.filter(t=>!t.mt);
+  if(!active.length && insView!=='save'){
+    el.innerHTML = '<div class="card mini">No data yet. Import a statement or snap a few slips.</div>'; return;
+  }
+  if(insView==='months')  return void(el.innerHTML = viewMonths(active));
+  if(insView==='merch')   return void(el.innerHTML = viewMerchants(active));
+  if(insView==='rec')     return void(el.innerHTML = viewRecurring());
+  if(insView==='save')    return void(el.innerHTML = viewSavings());
+}
+
+function viewMonths(active){
   const by = {};
-  S.tx.filter(t=>!t.mt).forEach(t=>{ const m = t.d.slice(0,7);
-    (by[m] = by[m] || {tot:0,cats:{}}); by[m].tot += t.a; by[m].cats[t.c] = (by[m].cats[t.c]||0)+t.a; });
+  active.forEach(t=>{ const m=t.d.slice(0,7); (by[m]=by[m]||{tot:0,cats:{}});
+    by[m].tot+=t.a; by[m].cats[t.c]=(by[m].cats[t.c]||0)+t.a; });
   const ms = Object.keys(by).sort();
-  const el = document.getElementById('trendBody');
-  if(!ms.length){ el.innerHTML = '<div class="card mini">No data yet. Import a statement or snap a few slips.</div>'; return; }
   const max = Math.max(...ms.map(m=>by[m].tot));
-  let h = '<div class="card"><div class="mini">Total spend by calendar month</div><div class="spark">'
-    + ms.map(m=>'<i style="height:'+(by[m].tot/max*100)+'%;background:var(--acc)"></i>').join('')
+  const avg = ms.reduce((a,m)=>a+by[m].tot,0)/ms.length;
+  let h = '<div class="card"><div class="row"><div class="mini">Spend by calendar month</div>'
+    + '<div class="mini">avg ' + R(avg) + '</div></div><div class="spark">'
+    + ms.map(m=>'<i style="height:'+(by[m].tot/max*100)+'%;background:'+(by[m].tot>avg?'var(--warn)':'var(--acc)')+'" title="'+m+'"></i>').join('')
     + '</div><div class="row mini" style="margin-top:6px"><span>'+ms[0]+'</span><span>'+ms[ms.length-1]+'</span></div></div>';
-  h += '<h2>By month</h2>';
   ms.slice().reverse().forEach(m=>{
     const top = Object.entries(by[m].cats).sort((a,b)=>b[1]-a[1]).slice(0,6);
     h += '<div class="card"><div class="row"><div style="font-weight:700">'+m+'</div>'
        + '<div class="mono" style="font-weight:700">'+R(by[m].tot)+'</div></div>'
-       + '<table style="margin-top:6px">' + top.map(([k,v])=>
-           '<tr><td>'+esc(k)+'</td><td class="r">'+R(v)+'</td></tr>').join('') + '</table></div>';
+       + '<table style="margin-top:6px">'+top.map(([k,v])=>
+          '<tr><td>'+esc(k)+'</td><td class="r">'+R(v)+'</td></tr>').join('')+'</table></div>';
   });
-  el.innerHTML = h;
+  return h;
 }
+
+function viewMerchants(active){
+  const g = {};
+  active.forEach(t=>{ const k=merchantOf(t.note);
+    (g[k]=g[k]||{n:0,a:0,c:t.c,last:t.d}); g[k].n++; g[k].a+=t.a;
+    if(t.d>g[k].last) g[k].last=t.d; });
+  const list = Object.entries(g).map(([k,v])=>({name:k,...v}));
+  const bySpend  = [...list].sort((a,b)=>b.a-a.a).slice(0,25);
+  const byVisits = [...list].sort((a,b)=>b.n-a.n).slice(0,15);
+  const tot = active.reduce((a,t)=>a+t.a,0);
+  let h = '<div class="card"><div class="mini">'+list.length+' merchants · '+R(tot)+' total</div></div>';
+  h += '<h2>Biggest spend</h2><div class="card"><table>' + bySpend.map(m=>
+      '<tr><td>'+esc(m.name)+'<div class="tag">'+esc(m.c)+' &middot; '+m.n+' visit'+(m.n===1?'':'s')
+      +' &middot; avg '+R(m.a/m.n)+'</div></td><td class="r">'+R(m.a)
+      +'<div class="mini" style="font-weight:400">'+(m.a/tot*100).toFixed(1)+'%</div></td></tr>').join('')
+    + '</table></div>';
+  h += '<h2>Most frequent</h2><div class="card">'
+    + '<div class="mini" style="margin-bottom:8px">Small repeat purchases are the hardest to notice.</div><table>'
+    + byVisits.map(m=>'<tr><td>'+esc(m.name)+'<div class="tag">'+esc(m.c)+' &middot; avg '+R(m.a/m.n)+'</div></td>'
+      +'<td class="r">'+m.n+'&times;<div class="mini" style="font-weight:400">'+R(m.a)+'</div></td></tr>').join('')
+    + '</table></div>';
+  return h;
+}
+
+function viewRecurring(){
+  const r = recurring();
+  if(!r.length) return '<div class="card mini">Nothing repeating yet. Import two or more months of statements and your debit orders and subscriptions will show up here.</div>';
+  const monthly = r.reduce((a,x)=>a+x.amount,0);
+  let h = '<div class="card"><div class="row"><div><div class="mini">Repeating charges</div>'
+    + '<div class="mono" style="font-size:23px;font-weight:700">'+R(monthly)+'<span style="font-size:14px;color:var(--dim)">/mo</span></div></div>'
+    + '<div style="text-align:right"><div class="mini">Committed</div><div class="mono" style="font-size:23px;font-weight:700">'
+    + (S.income? Math.round(monthly/S.income*100)+'%' : '—') + '</div></div></div>'
+    + '<div class="mini" style="margin-top:6px">This is what leaves your account whether you act or not.</div></div>';
+  h += '<div class="card"><table>' + r.map(x=>
+      '<tr><td>'+esc(x.name)+'<div class="tag">'+esc(x.cat)+' &middot; around the '+x.day+'th &middot; seen in '+x.months+' months</div></td>'
+    + '<td class="r">'+R2(x.amount)+'</td></tr>').join('') + '</table></div>';
+  return h;
+}
+
+function viewSavings(){
+  const f = S.flows || [];
+  if(!f.length) return '<div class="card mini">No savings movements found yet. Import a statement — transfers to and from your savings or investment account are picked up automatically.</div>';
+  const by = {};
+  f.forEach(x=>{ const m=x.d.slice(0,7); (by[m]=by[m]||{in:0,out:0});
+    if(x.dir==='out') by[m].out+=x.a; else by[m].in+=x.a; });
+  const ms = Object.keys(by).sort();
+  const totOut = f.filter(x=>x.dir==='out').reduce((a,x)=>a+x.a,0);
+  const totIn  = f.filter(x=>x.dir==='in').reduce((a,x)=>a+x.a,0);
+  const net = totOut - totIn;
+  let h = '<div class="card hero"><div class="lbl">Net into savings</div>'
+    + '<div class="big '+(net>=0?'ok':'bd')+'">'+ (net>=0?'':'−') + R(Math.abs(net)) +'</div>'
+    + '<div class="note">'+R(totOut)+' paid in · '+R(totIn)+' taken back out across '+ms.length+' months</div></div>';
+  if(net < 0) h += '<div class="warnbox">You have taken out '+R(-net)+' more than you put away. '
+    + 'Money moving to savings and coming straight back is not saving.</div>';
+  if(S.savingsGoal>0){
+    const perMonth = ms.length ? net/ms.length : 0;
+    const pct = Math.max(0, Math.min(100, perMonth/S.savingsGoal*100));
+    h += '<div class="card"><div class="row"><div><div class="mini">Average per month</div>'
+      + '<div class="mono '+(perMonth>=S.savingsGoal?'ok':'bd')+'" style="font-size:21px;font-weight:700">'
+      + (perMonth>=0?'':'−')+R(Math.abs(perMonth))+'</div></div>'
+      + '<div style="text-align:right"><div class="mini">Goal</div>'
+      + '<div class="mono" style="font-size:21px;font-weight:700;color:var(--dim)">'+R(S.savingsGoal)+'</div></div></div>'
+      + '<div class="bar"><i style="width:'+pct+'%;background:'+(pct>=100?'var(--acc)':'var(--warn)')+'"></i></div>'
+      + '<div class="mini" style="margin-top:6px">'+Math.round(pct)+'% of your monthly savings goal</div></div>';
+  } else {
+    h += '<div class="infobox">Set a monthly savings goal under Setup to track progress here.</div>';
+  }
+  h += '<h2>By month</h2><div class="card"><table>' + ms.slice().reverse().map(m=>{
+      const v=by[m], n=v.out-v.in;
+      return '<tr><td>'+m+'<div class="tag">'+R(v.out)+' in · '+R(v.in)+' out</div></td>'
+        +'<td class="r '+(n>=0?'ok':'bd')+'">'+(n>=0?'':'−')+R(Math.abs(n))+'</td></tr>';
+    }).join('') + '</table></div>';
+  return h;
+}
+
+let stmtView='imp', insView='months', catsExpanded=false;
+function bindSeg(id, set){
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
+    [...el.children].forEach(x=>x.classList.toggle('on', x===b)); set(b.dataset.v); });
+}
+bindSeg('stmtSeg', v=>{ stmtView=v;
+  document.getElementById('pane-imp').style.display = v==='imp'?'':'none';
+  document.getElementById('pane-rec').style.display = v==='rec'?'':'none'; });
+bindSeg('insSeg', v=>{ insView=v; renderInsights(); });
+function toggleCats(){ catsExpanded=!catsExpanded; render(); }
+function setWeekly(v){ S.weekly=!!v; save(); render(); }
+function setGoal(v){ S.savingsGoal=+v||0; save(); render(); }
 
 let matchView = 'all';
 document.getElementById('matchSeg').addEventListener('click', e=>{
@@ -1092,6 +1350,61 @@ function catSheet(name){
     + '</table></div>');
 }
 
+function editTx(id){
+  const t = S.tx.find(x=>String(x.id)===String(id));
+  if(!t) return;
+  const m = merchantOf(t.note);
+  openSheet(
+      '<div class="row"><h1>Edit</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
+    + '<div class="sub">'+esc(t.note || '(no description)')+'</div>'
+    + (t.src==='pdf' ? '<div class="mini" style="margin-top:4px">From your bank statement</div>' : '')
+    + '<label>Amount (R)</label><input id="eAmt" type="number" inputmode="decimal" step="0.01" value="'+t.a+'">'
+    + '<label>Category</label><select id="eCat">'
+      + S.cats.map(c=>'<option'+(c.n===t.c?' selected':'')+'>'+esc(c.n)+'</option>').join('') + '</select>'
+    + '<label>Description</label><input id="eNote" value="'+esc(t.note||'')+'">'
+    + '<label>Date</label><input id="eDate" type="date" value="'+t.d+'">'
+    + (m && m!=='(bank fee)'
+        ? '<div class="card" style="margin-top:14px;background:var(--card2)">'
+          + '<label style="margin-top:0">Remember this</label>'
+          + '<div class="row"><input type="checkbox" id="eRule" style="width:22px;height:22px;flex:0 0 auto">'
+          + '<div class="mini" style="flex:1">Always put <b>'+esc(m)+'</b> in this category, including everything already imported.</div></div></div>'
+        : '')
+    + '<div style="height:14px"></div><button class="b" onclick="saveTx(&quot;'+t.id+'&quot;)">Save</button>'
+    + '<div style="height:8px"></div>'
+    + (t.photo ? '<button class="b g" onclick="viewShot(&quot;'+t.id+'&quot;)">View slip photo</button><div style="height:8px"></div>' : '')
+    + '<button class="b d" onclick="del(&quot;'+t.id+'&quot;);closeSheet()">Delete transaction</button>');
+}
+
+function saveTx(id){
+  const t = S.tx.find(x=>String(x.id)===String(id));
+  if(!t) return;
+  const a = parseFloat(document.getElementById('eAmt').value);
+  if(!a || a<=0) return alert('Enter an amount greater than zero.');
+  const newCat = document.getElementById('eCat').value;
+  const catChanged = newCat !== t.c;
+  t.a = a;
+  t.c = newCat;
+  t.note = document.getElementById('eNote').value;
+  t.d = document.getElementById('eDate').value || t.d;
+  if(catChanged) t.userCat = true;          /* protect from bulk recategorise */
+
+  let taught = 0;
+  const rule = document.getElementById('eRule');
+  if(rule && rule.checked){
+    const m = merchantOf(t.note);
+    const k = m.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');   /* escape for regex */
+    S.rules = (S.rules||[]).filter(r=>r.k !== k);
+    S.rules.unshift({k, c:newCat});
+    /* apply it to everything already on record */
+    for(const x of S.tx){
+      if(x.id===t.id || x.userCat) continue;
+      if(merchantOf(x.note).toLowerCase() === m.toLowerCase()){ x.c = newCat; taught++; }
+    }
+  }
+  save(); render(); closeSheet();
+  if(taught) alert('Rule saved. '+taught+' other transaction(s) updated.');
+}
+
 async function viewShot(id){
   const t = S.tx.find(x=>String(x.id)===String(id));
   if(!t || !t.photo) return;
@@ -1194,7 +1507,7 @@ drop.onclick = () => fileEl.click();
 drop.addEventListener('drop', ev=>{ const f = ev.dataTransfer.files[0]; if(f) handle(f); });
 fileEl.onchange = e => { const f = e.target.files[0]; if(f) handle(f); e.target.value=''; };
 
-let pending = null;
+let pending = null, pendingFlows = null;
 async function handle(f){
   flash('impMsg','i','Reading ' + f.name + ' …');
   document.getElementById('impResult').innerHTML = '';
@@ -1206,6 +1519,11 @@ async function handle(f){
     const fresh = r.tx.filter(t => !seen.has(t.d+'|'+t.a.toFixed(2)+'|'+t.desc));
     const dupes = r.tx.length - fresh.length;
     pending = fresh.map(t => ({id:uid(), a:t.a, c:t.c, note:t.desc, d:t.d, src:'pdf'}));
+    /* savings + income movements, deduped the same way */
+    const fseen = new Set((S.flows||[]).map(x=>x.d+'|'+x.a.toFixed(2)+'|'+x.note));
+    pendingFlows = r.skipped.filter(x=>x.kind && x.kind!=='income')
+      .map(x=>({id:uid(), d:x.d, a:x.a, note:x.desc, dir: x.kind==='savings-out'?'out':'in'}))
+      .filter(x=>!fseen.has(x.d+'|'+x.a.toFixed(2)+'|'+x.note));
 
     /* how many of these will pair with slips already logged */
     const logged = S.tx.filter(isLog);
@@ -1221,6 +1539,8 @@ async function handle(f){
       + '<div class="mono" style="font-weight:700">'+R2(tot)+'</div></div>'
       + '<div class="mini" style="margin-top:4px">Credits, transfers between your own accounts and payments to Investment were excluded — they are not spending.</div>'
       + (pairs.length ? '<div class="infobox" style="margin-top:11px">'+pairs.length+' of these already match slips you logged. They will be folded together, not double-counted.</div>' : '')
+      + ((pendingFlows&&pendingFlows.length) ? '<div class="infobox" style="margin-top:11px">'+pendingFlows.length
+          +' savings movement(s) also found — these are tracked separately under Insights, not counted as spending.</div>' : '')
       + '<table style="margin-top:10px">'
       + Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>
           '<tr><td>'+esc(k)+'</td><td class="r">'+R(v)+'</td></tr>').join('')
@@ -1243,7 +1563,8 @@ function commit(){
     if(!S.cats.some(c=>c.n===t.c)) S.cats.push({n:t.c, t:0});
     S.tx.push(t);
   });
-  const n = pending.length; pending = null;
+  if(pendingFlows && pendingFlows.length){ S.flows = (S.flows||[]).concat(pendingFlows); }
+  const n = pending.length; pending = null; pendingFlows = null;
   save(); render();
   flash('impMsg','s', n + ' statement lines added. Check the Match tab.');
   go('match');
