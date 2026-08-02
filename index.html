@@ -925,21 +925,11 @@ function render(){
   if(dup.length) al.push('Possible double charge: ' + dup[0]);
   let alertHtml = al.slice(0,3).map(m=>'<div class="warnbox">'+esc(m)+'</div>').join('');
 
-  /* Imported history sits in past cycles — say so rather than showing a bare R0. */
-  if(!tx.length && active.length){
-    const months = [...new Set(active.map(t=>t.d.slice(0,7)))].sort();
-    const jump = latestCycleWithData();
-    alertHtml = '<div class="infobox"><b>Nothing in this period yet.</b> You have '
-      + active.length + ' transactions on record from ' + months[0] + ' to ' + months[months.length-1] + '. '
-      + (jump !== null ? '<a href="#" onclick="gotoCycle('+jump+');return false" style="color:var(--blue)"><b>View '
-          + cycleAt(jump).s.toLocaleDateString('en-ZA',{month:'long',year:'numeric'}) + '</b></a>, or check Trends.'
-          : 'Check Trends.')
-      + '</div>' + alertHtml;
-  }
-  const uncTot = active.filter(t=>t.c==='Uncategorised').reduce((a,t)=>a+t.a,0);
-  if(uncTot > 0 && !(S.rules||[]).length){
-    alertHtml += '<div class="warnbox">' + R(uncTot) + ' of spending is Uncategorised. '
-      + 'Restore your setup file under Budget to load your merchant rules, then tap Recategorise.</div>';
+  /* Nothing yet this month is normal early in a cycle — one quiet line, not a wall of history. */
+  if(!tx.length && active.length && isNow){
+    alertHtml = '<div class="mini" style="text-align:center;padding:4px 0 10px">Nothing spent yet this month · '
+      + 'tap &#10094; or <a href="#" onclick="go(&quot;insight&quot;);return false" style="color:var(--blue)">Insights</a> for earlier months</div>'
+      + alertHtml;
   }
   document.getElementById('alerts').innerHTML = alertHtml;
 
@@ -1051,7 +1041,7 @@ function latestCycleWithData(){
   }
   return null;
 }
-function gotoCycle(o){ cycleOffset = o; render(); window.scrollTo(0,0); }
+function gotoCycle(o){ cycleOffset = o; render(); go('today'); window.scrollTo(0,0); }
 
 function findDuplicates(tx){
   const seen = new Map(), out = [];
@@ -1302,8 +1292,11 @@ async function storeInfo(){
   const ui = document.getElementById('uncInfo');
   if(ui){
     const u = S.tx.filter(t=>!t.mt && t.c==='Uncategorised');
-    ui.textContent = (S.rules||[]).length + ' custom rule(s) loaded · '
-      + u.length + ' transaction(s) uncategorised' + (u.length ? ' worth ' + R2(u.reduce((a,t)=>a+t.a,0)) : '');
+    const uv = u.reduce((a,t)=>a+t.a,0);
+    ui.innerHTML = (S.rules||[]).length + ' custom rule(s) loaded · '
+      + u.length + ' transaction(s) uncategorised' + (u.length ? ' worth ' + R2(uv) : '')
+      + (u.length && !(S.rules||[]).length
+          ? '<div class="wn" style="margin-top:6px">Load your setup file above, then tap Recategorise.</div>' : '');
   }
 }
 
@@ -1451,7 +1444,15 @@ function go(t){
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
   window.scrollTo(0,0);
 }
-document.querySelectorAll('.nav button').forEach(b=> b.onclick = ()=> go(b.dataset.t));
+document.querySelectorAll('.nav button').forEach(b=> b.onclick = ()=>{
+  if(b.dataset.t === 'today' && cycleOffset !== 0){ cycleOffset = 0; render(); }
+  go(b.dataset.t);
+});
+/* Reopening the app always lands on the current month, never where you browsed to. */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && cycleOffset !== 0){ cycleOffset = 0; render(); }
+});
+window.addEventListener('pageshow', ()=>{ if(cycleOffset !== 0){ cycleOffset = 0; render(); } });
 
 /* ============================================================
    Slip capture flow
