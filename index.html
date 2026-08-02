@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f14">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Private offline budget tracker.">
+<title>Budget</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f14; --card:#141b23; --card2:#1b242e; --line:#25313d;
+  --tx:#e8eef5; --dim:#8a9bad; --acc:#14e08a; --warn:#ffc14d; --bad:#ff6b6b; --blue:#5aa9ff;
+  --safe:env(safe-area-inset-bottom,0px);
+}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.4;overscroll-behavior-y:none}
+body{padding-bottom:calc(78px + var(--safe))}
+.wrap{max-width:520px;margin:0 auto;padding:14px 14px 0}
+h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.3px}
+h2{font-size:13px;margin:22px 0 9px;color:var(--dim);text-transform:uppercase;letter-spacing:.9px;font-weight:600}
+.sub{color:var(--dim);font-size:12.5px;margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.hero{text-align:center;padding:20px 14px}
+.hero .big{font-size:42px;font-weight:750;letter-spacing:-1.5px;line-height:1.05;font-variant-numeric:tabular-nums}
+.hero .lbl{color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.hero .note{color:var(--dim);font-size:12.5px;margin-top:8px}
+.ok{color:var(--acc)} .wn{color:var(--warn)} .bd{color:var(--bad)} .bl{color:var(--blue)}
+.bar{height:7px;background:#0c1219;border-radius:99px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;border-radius:99px;transition:width .35s ease}
+.cat{padding:11px 0;border-bottom:1px solid var(--line)}
+.cat:last-child{border-bottom:0}
+.cat .n{font-weight:600;font-size:14.5px}
+.cat .v{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.nav{position:fixed;left:0;right:0;bottom:0;background:rgba(11,15,20,.94);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);display:flex;padding-bottom:var(--safe);z-index:60}
+.nav button{flex:1;background:none;border:0;color:var(--dim);padding:10px 1px 8px;
+  font-size:9.5px;font-family:inherit;font-weight:600;letter-spacing:.1px;position:relative}
+.nav button.on{color:var(--acc)}
+.nav button div{font-size:19px;line-height:1.15}
+.nav .dot{position:absolute;top:6px;right:calc(50% - 17px);width:8px;height:8px;
+  border-radius:99px;background:var(--warn);display:none}
+.nav .dot.on{display:block}
+.tab{display:none} .tab.on{display:block}
+button.b{background:var(--acc);color:#06120c;border:0;border-radius:11px;padding:13px;
+  font-size:15px;font-weight:700;width:100%;font-family:inherit}
+button.b:disabled{opacity:.45}
+button.g{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
+button.d{background:transparent;color:var(--bad);border:1px solid var(--line)}
+button.sm{width:auto;padding:8px 13px;font-size:12.5px;border-radius:9px}
+input,select,textarea{background:var(--card2);border:1px solid var(--line);color:var(--tx);
+  border-radius:10px;padding:12px;font-size:16px;width:100%;font-family:inherit}
+input:focus,select:focus{outline:0;border-color:var(--acc)}
+label{display:block;font-size:11.5px;color:var(--dim);margin:11px 0 5px;
+  text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:99px;
+  padding:8px 13px;font-size:13px;font-weight:600;color:var(--tx);font-family:inherit}
+.chip.on{background:var(--acc);color:#06120c;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.tag{display:inline-block;font-size:10.5px;color:var(--dim);background:var(--card2);
+  padding:2px 7px;border-radius:5px;margin-top:3px}
+.tag.ok{color:var(--acc);background:rgba(20,224,138,.12)}
+.tag.wn{color:var(--warn);background:rgba(255,193,77,.12)}
+.tag.bl{color:var(--blue);background:rgba(90,169,255,.12)}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;color:var(--dim)}
+.drop.hot{border-color:var(--acc);color:var(--acc)}
+.msg{padding:11px 13px;border-radius:10px;font-size:13.5px;margin-top:10px;display:none}
+.msg.s{background:rgba(20,224,138,.12);color:var(--acc);display:block}
+.msg.e{background:rgba(255,107,107,.12);color:var(--bad);display:block}
+.msg.i{background:rgba(90,169,255,.12);color:var(--blue);display:block}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:flex-end}
+.sheet.on{display:flex}
+.sheet>div{background:var(--card);width:100%;max-width:520px;margin:0 auto;
+  border-radius:18px 18px 0 0;padding:18px 16px calc(20px + var(--safe));max-height:90vh;overflow:auto}
+.grab{width:38px;height:4px;background:var(--line);border-radius:9px;margin:0 auto 14px}
+.mono{font-variant-numeric:tabular-nums}
+.mini{font-size:11.5px;color:var(--dim)}
+.spark{display:flex;align-items:flex-end;gap:3px;height:34px;margin-top:9px}
+.spark i{flex:1;background:var(--card2);border-radius:2px 2px 0 0;min-height:2px}
+.warnbox{background:rgba(255,193,77,.1);border:1px solid rgba(255,193,77,.3);
+  border-radius:11px;padding:12px;font-size:13px;color:var(--warn);margin-bottom:10px}
+.infobox{background:rgba(90,169,255,.1);border:1px solid rgba(90,169,255,.3);
+  border-radius:11px;padding:12px;font-size:13px;color:var(--blue);margin-bottom:10px}
+.thumb{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--card2)}
+.shot{width:100%;max-height:42vh;object-fit:contain;border-radius:12px;background:#000}
+.prog{height:5px;background:#0c1219;border-radius:99px;overflow:hidden;margin-top:10px}
+.prog>i{display:block;height:100%;background:var(--blue);width:0;transition:width .2s}
+.cap{display:flex;gap:9px}
+.cap>button{flex:1}
+details{margin-top:10px}
+summary{font-size:12px;color:var(--dim);cursor:pointer}
+pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2);
+  padding:10px;border-radius:9px;max-height:170px;overflow:auto;margin-top:8px}
+.seg{display:flex;background:var(--card2);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1;background:none;border:0;color:var(--dim);padding:9px 4px;border-radius:8px;
+  font-size:12.5px;font-weight:600;font-family:inherit}
+.seg button.on{background:var(--card);color:var(--tx)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ================= TODAY ================= -->
+<section class="tab on" id="t-today">
+  <div class="row" style="margin-bottom:12px">
+    <div><h1>This month</h1><div class="sub" id="periodLbl"></div></div>
+    <div style="text-align:right"><div class="mini">Day</div><div class="mono" style="font-weight:700" id="dayLbl"></div></div>
+  </div>
+
+  <div class="card hero">
+    <div class="lbl">Safe to spend today</div>
+    <div class="big" id="safeToday">R0</div>
+    <div class="note" id="safeNote"></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><div><div class="mini">Spent</div><div class="mono" style="font-size:21px;font-weight:700" id="spent">R0</div></div>
+    <div style="text-align:right"><div class="mini">Budget</div><div class="mono" style="font-size:21px;font-weight:700;color:var(--dim)" id="budTot">R0</div></div></div>
+    <div class="bar"><i id="totBar"></i></div>
+    <div class="row" style="margin-top:8px"><div class="mini" id="pctLbl"></div><div class="mini" id="leftLbl"></div></div>
+  </div>
+
+  <div id="alerts"></div>
+
+  <h2>Categories</h2>
+  <div class="card" id="catList"></div>
+
+  <h2>Recent</h2>
+  <div class="card"><table id="recent"></table></div>
+  <div style="height:20px"></div>
+</section>
+
+<!-- ================= SNAP ================= -->
+<section class="tab" id="t-snap">
+  <h1>Capture a slip</h1>
+  <div class="sub">Photograph the till slip. It is read on your phone &mdash; the image never leaves the device.</div>
+
+  <div style="height:12px"></div>
+  <div class="cap">
+    <button class="b" onclick="document.getElementById('camIn').click()">&#128247; Camera</button>
+    <button class="b g" onclick="document.getElementById('galIn').click()">Gallery</button>
+  </div>
+  <input type="file" id="camIn" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="galIn" accept="image/*" style="display:none">
+
+  <div class="msg" id="snapMsg"></div>
+  <div class="prog" id="ocrProg" style="display:none"><i></i></div>
+
+  <h2>Quick log &mdash; no photo</h2>
+  <div class="card" id="shortcuts"></div>
+
+  <h2>Manual entry</h2>
+  <div class="card">
+    <label>Amount (R)</label>
+    <input id="mAmt" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+    <label>Category</label>
+    <select id="mCat"></select>
+    <label>Where / what</label>
+    <input id="mNote" placeholder="e.g. Coffee Craft">
+    <label>Date</label>
+    <input id="mDate" type="date">
+    <div style="height:14px"></div>
+    <button class="b" onclick="addManual()">Add spend</button>
+    <div class="msg" id="addMsg"></div>
+  </div>
+  <div style="height:20px"></div>
+</section>
+
+<!-- ================= IMPORT ================= -->
+<section class="tab" id="t-import">
+  <h1>Import statement</h1>
+  <div class="sub">Download the statement PDF from the FNB app, then drop it here. Parsed on your phone; nothing is uploaded.</div>
+
+  <div style="height:14px"></div>
+  <div class="drop" id="drop">
+    <div style="font-size:32px">&#128196;</div>
+    <div style="margin-top:8px;font-weight:600">Tap to choose a PDF</div>
+    <div class="mini" style="margin-top:4px">FNB Easy / Cheque statement</div>
+    <input type="file" id="file" accept="application/pdf" style="display:none">
+  </div>
+  <div class="msg" id="impMsg"></div>
+  <div id="impResult"></div>
+  <div style="height:20px"></div>
+</section>
+
+<!-- ================= MATCH ================= -->
+<section class="tab" id="t-match">
+  <h1>Reconcile</h1>
+  <div class="sub">Your slips against the bank statement. The statement is always treated as the truth.</div>
+
+  <div style="height:12px"></div>
+  <div class="seg" id="matchSeg">
+    <button class="on" data-v="all">All time</button>
+    <button data-v="cycle">This cycle</button>
+  </div>
+  <div id="matchBody"></div>
+  <div style="height:20px"></div>
+</section>
+
+<!-- ================= BUDGET ================= -->
+<section class="tab" id="t-budget">
+  <h1>Budget</h1>
+  <div class="sub">Targets set from your verified Mar&ndash;Jul 2026 actuals.</div>
+
+  <div class="card">
+    <label>Monthly income (R)</label>
+    <input id="income" type="number" inputmode="decimal" onchange="setIncome(this.value)">
+    <label>Pay day (day of month)</label>
+    <input id="cycleDay" type="number" min="1" max="28" onchange="setCycleDay(this.value)">
+    <div class="row" style="margin-top:14px">
+      <div><div class="mini">Budgeted</div><div class="mono" style="font-size:19px;font-weight:700" id="bSum">R0</div></div>
+      <div style="text-align:right"><div class="mini">Left to save</div><div class="mono ok" style="font-size:19px;font-weight:700" id="bSave">R0</div></div>
+    </div>
+    <div class="mini" id="saveRate" style="margin-top:6px"></div>
+  </div>
+
+  <h2>Targets</h2>
+  <div class="card" id="budList"></div>
+
+  <div class="card">
+    <label>Add a category</label>
+    <div class="row"><input id="newCat" placeholder="Name"><input id="newAmt" type="number" inputmode="decimal" placeholder="R" style="max-width:110px"></div>
+    <div style="height:10px"></div>
+    <button class="b g" onclick="addCat()">Add category</button>
+  </div>
+
+  <h2>Data</h2>
+  <div class="card">
+    <div class="mini" id="storeInfo" style="margin-bottom:10px"></div>
+    <button class="b g" onclick="exportData()">Export backup (JSON)</button>
+    <div style="height:8px"></div>
+    <button class="b g" onclick="document.getElementById('impJson').click()">Restore from backup</button>
+    <input type="file" id="impJson" accept="application/json" style="display:none">
+    <div style="height:8px"></div>
+    <button class="b g" onclick="exportCsv()">Export transactions (CSV)</button>
+    <div style="height:8px"></div>
+    <button class="b g" onclick="purgePhotos()">Delete slip photos older than 90 days</button>
+    <div style="height:8px"></div>
+    <button class="b d" onclick="wipe()">Erase everything</button>
+    <div class="mini" style="margin-top:10px">Data lives only in this browser. The JSON backup does not include photos &mdash; those stay on the device.</div>
+  </div>
+  <div style="height:20px"></div>
+</section>
+
+<!-- ================= TRENDS ================= -->
+<section class="tab" id="t-trend">
+  <h1>Trends</h1>
+  <div class="sub">Month by month, once you have data.</div>
+  <div id="trendBody"></div>
+  <div style="height:20px"></div>
+</section>
+
+</div>
+
+<nav class="nav">
+  <button class="on" data-t="today"><div>&#9679;</div>Today</button>
+  <button data-t="snap"><div>&#128247;</div>Snap</button>
+  <button data-t="import"><div>&#8681;</div>Import</button>
+  <button data-t="match"><div>&#8644;</div>Match<span class="dot" id="matchDot"></span></button>
+  <button data-t="budget"><div>&#9636;</div>Budget</button>
+  <button data-t="trend"><div>&#9650;</div>Trends</button>
+</nav>
+
+<div class="sheet" id="sheet"><div>
+  <div class="grab"></div>
+  <div id="sheetBody"></div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* ============================================================
+   Budget — single file, offline, no accounts, no tracking.
+   Your data stays on this device. Nothing is uploaded, there is
+   no account, and no analytics. Statement parsing and receipt OCR
+   both run locally in the browser.
+
+   Storage: settings + transactions -> localStorage
+            slip photos            -> IndexedDB (much larger quota)
+   ============================================================ */
+
+const KEY = 'wnBudget_v2';
+
+const DEFAULTS = {
+  income: 0,
+  cycleDay: 1,                 /* day of month you get paid */
+  setupDone: false,
+  rules: [],                   /* your own merchant -> category rules, loaded from backup */
+  shortcuts: [
+    {l:'Coffee',     a:35,  c:'Eating out'},
+    {l:'Groceries',  a:150, c:'Groceries'},
+    {l:'Fuel',       a:300, c:'Fuel'},
+    {l:'Takeaway',   a:120, c:'Eating out'},
+    {l:'Airtime',    a:30,  c:'Airtime / data'},
+    {l:'Cash',       a:200, c:'Cash withdrawals'}
+  ],
+  cats: [
+    {n:'Rent',              t:0, fixed:true},
+    {n:'Groceries',         t:0},
+    {n:'Fuel',              t:0},
+    {n:'Transfers to people',t:0},
+    {n:'Eating out',        t:0},
+    {n:'Internet',          t:0, fixed:true},
+    {n:'Electricity',       t:0},
+    {n:'Laundry',           t:0},
+    {n:'Cash withdrawals',  t:0},
+    {n:'Retail / health',   t:0},
+    {n:'Gym & sport',       t:0},
+    {n:'Airtime / data',    t:0},
+    {n:'Subscriptions',     t:0},
+    {n:'Transport',         t:0},
+    {n:'Bank fees',         t:0},
+    {n:'Accommodation',     t:0},
+    {n:'Uncategorised',     t:0}
+  ],
+  tx: []
+};
+
+
+let S = load();
+
+function load(){
+  try{
+    const r = localStorage.getItem(KEY) || localStorage.getItem('wnBudget_v1');
+    if(r) return Object.assign(structuredClone(DEFAULTS), JSON.parse(r));
+  }catch(e){ console.warn('load failed', e); }
+  return structuredClone(DEFAULTS);
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ alert('Could not save — storage may be full, or you are in private browsing.'); }
+}
+
+/* ---------- helpers ---------- */
+const R  = n => 'R' + Math.round(n).toLocaleString('en-ZA');
+const R2 = n => 'R' + n.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
+const iso = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const esc = s => String(s??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const dayDiff = (a,b) => Math.round((new Date(a+'T12:00:00') - new Date(b+'T12:00:00'))/86400000);
+
+function cycle(ref){
+  const d = ref ? new Date(ref) : new Date();
+  const cd = S.cycleDay || 1;
+  let s = new Date(d.getFullYear(), d.getMonth(), cd);
+  if(d.getDate() < cd) s = new Date(d.getFullYear(), d.getMonth()-1, cd);
+  const e = new Date(s.getFullYear(), s.getMonth()+1, cd); e.setDate(e.getDate()-1);
+  return {s, e};
+}
+const inCycle = (t,c) => { const d = new Date(t.d+'T12:00:00');
+  return d >= c.s && d <= new Date(c.e.getFullYear(),c.e.getMonth(),c.e.getDate(),23,59); };
+const fmtD = d => d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+
+/* ============================================================
+   IndexedDB photo store
+   ============================================================ */
+let _dbp;
+function db(){
+  return _dbp || (_dbp = new Promise((res,rej)=>{
+    const r = indexedDB.open('wnBudgetPhotos', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('p');
+    r.onsuccess = () => res(r.result);
+    r.onerror   = () => rej(r.error);
+  }));
+}
+async function photoPut(id, blob){
+  const d = await db();
+  return new Promise((res,rej)=>{ const t = d.transaction('p','readwrite');
+    t.objectStore('p').put(blob, id); t.oncomplete = res; t.onerror = ()=>rej(t.error); });
+}
+async function photoGet(id){
+  try{ const d = await db();
+    return await new Promise((res,rej)=>{ const t = d.transaction('p','readonly');
+      const q = t.objectStore('p').get(id); q.onsuccess = ()=>res(q.result); q.onerror = ()=>rej(q.error); });
+  }catch(e){ return null; }
+}
+async function photoDel(id){
+  try{ const d = await db();
+    await new Promise(res=>{ const t = d.transaction('p','readwrite');
+      t.objectStore('p').delete(id); t.oncomplete = res; t.onerror = res; });
+  }catch(e){}
+}
+const _urls = new Map();
+async function photoUrl(id){
+  if(_urls.has(id)) return _urls.get(id);
+  const b = await photoGet(id); if(!b) return null;
+  const u = URL.createObjectURL(b); _urls.set(id,u); return u;
+}
+
+/* ============================================================
+   Image handling — compress before storing (60-100 slips/month)
+   ============================================================ */
+async function toBitmap(file){
+  if(window.createImageBitmap) return await createImageBitmap(file);
+  return await new Promise((res,rej)=>{ const i = new Image();
+    i.onload = ()=>res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+}
+async function shrink(file, maxW, q){
+  const img = await toBitmap(file);
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+  const sc = Math.min(1, maxW / w);
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w*sc)); c.height = Math.max(1, Math.round(h*sc));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, 'image/jpeg', q));
+}
+/* Higher-contrast greyscale copy purely for OCR — not stored */
+async function forOcr(file){
+  const img = await toBitmap(file);
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+  const sc = Math.min(1, 1600 / w);
+  const c = document.createElement('canvas');
+  c.width = Math.round(w*sc); c.height = Math.round(h*sc);
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0, c.width, c.height);
+  const d = x.getImageData(0,0,c.width,c.height), p = d.data;
+  for(let i=0;i<p.length;i+=4){
+    let g = 0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2];
+    g = g < 110 ? 0 : g > 165 ? 255 : (g-110)*(255/55);   /* stretch contrast */
+    p[i]=p[i+1]=p[i+2]=g;
+  }
+  x.putImageData(d,0,0);
+  return await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+}
+
+/* ============================================================
+   On-device OCR (Tesseract.js, lazy-loaded on first use)
+   ============================================================ */
+function loadScript(src){
+  return new Promise((res,rej)=>{ const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Could not load OCR engine — check your connection the first time.'));
+    document.head.appendChild(s); });
+}
+async function runOcr(blob, onProg){
+  if(!window.Tesseract){
+    onProg(0.02, 'Downloading OCR engine (first time only)…');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
+  }
+  onProg(0.1, 'Reading slip…');
+  const res = await Tesseract.recognize(blob, 'eng', {
+    logger: m => { if(m.status === 'recognizing text') onProg(0.1 + m.progress*0.9, 'Reading slip…'); }
+  });
+  return res.data.text || '';
+}
+
+/* ---------- pull amount / date / merchant out of slip text ---------- */
+const AMT_RE  = /(?:r\s*)?(\d{1,3}(?:[ ,]\d{3})+|\d+)[.,](\d{2})(?!\d)/gi;
+const TOTAL_RE= /\b(total|totaal|amount due|balance due|to pay|grand total|card total|payment)\b/i;
+const NOT_RE  = /\b(sub[\s\-]*total|subtotaal|vat|btw|tax|change|kleingeld|tendered|rounding|discount|saving|balance b|points|loyalty|excl|incl of vat)\b/i;
+const DATE_RES = [
+  /\b(\d{4})[-\/](\d{2})[-\/](\d{2})\b/,                       /* 2026-07-14 */
+  /\b(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})\b/,                 /* 14/07/2026 */
+  /\b(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})\b/                  /* 14/07/26   */
+];
+const toNum = m => parseFloat((m[1].replace(/[ ,]/g,'')) + '.' + m[2]);
+
+function extractReceipt(text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  /* --- total: prefer a line that says TOTAL and is not a VAT/subtotal line --- */
+  let total = null, how = 'largest amount on the slip';
+  for(const l of lines){
+    if(TOTAL_RE.test(l) && !NOT_RE.test(l)){
+      const ms = [...l.matchAll(AMT_RE)];
+      if(ms.length){ total = toNum(ms[ms.length-1]); how = 'the line reading "' + l.slice(0,34) + '"'; }
+    }
+  }
+  if(total == null){                       /* fall back to the biggest plausible number */
+    const all = [];
+    for(const l of lines){ if(NOT_RE.test(l)) continue;
+      for(const m of l.matchAll(AMT_RE)) all.push(toNum(m)); }
+    if(all.length) total = Math.max(...all);
+  }
+
+  /* --- date --- */
+  let date = null;
+  for(const l of lines){
+    for(const re of DATE_RES){
+      const m = re.exec(l); if(!m) continue;
+      let y,mo,dd;
+      if(m[1].length === 4){ y=+m[1]; mo=+m[2]; dd=+m[3]; }
+      else { dd=+m[1]; mo=+m[2]; y=+m[3]; if(y<100) y += 2000; }
+      if(mo>=1 && mo<=12 && dd>=1 && dd<=31 && y>=2020 && y<=2100){
+        const c = new Date(y, mo-1, dd);
+        if(c <= new Date(Date.now()+86400000)){ date = iso(c); break; }
+      }
+    }
+    if(date) break;
+  }
+
+  /* --- merchant: first substantial alphabetic line near the top --- */
+  let merchant = '';
+  for(const l of lines.slice(0,7)){
+    const clean = l.replace(/[^A-Za-z0-9&'*\s\-\.]/g,'').trim();
+    if(clean.length >= 4 && /[A-Za-z]{3}/.test(clean) &&
+       !/^(tax invoice|invoice|vat|reg|tel|receipt|slip|copy)/i.test(clean)){
+      merchant = clean.slice(0,34); break;
+    }
+  }
+
+  const cat = classify(merchant + ' ' + lines.slice(0,10).join(' '));
+  return {total, date: date || iso(new Date()), merchant, cat, how, text};
+}
+
+/* ============================================================
+   Reconciliation
+   Statement lines (src 'pdf') are truth. Logged slips are
+   matched to them on exact amount within a +/- day window.
+   ============================================================ */
+const MATCH_DAYS = 4;
+
+function matchSets(stmt, logged, win){
+  win = win || MATCH_DAYS;
+  const used = new Set(), pairs = [];
+  /* nearest-date-first so a repeated amount pairs with the closest slip */
+  for(const s of stmt){
+    let best = null, bestD = 1e9;
+    for(const l of logged){
+      if(used.has(l.id)) continue;
+      if(Math.abs(l.a - s.a) > 0.005) continue;
+      const dd = Math.abs(dayDiff(s.d, l.d));
+      if(dd <= win && dd < bestD){ best = l; bestD = dd; }
+    }
+    if(best){ used.add(best.id); pairs.push({stmt:s, log:best, days:bestD}); }
+  }
+  return {
+    pairs,
+    logOnly:  logged.filter(l => !used.has(l.id)),
+    stmtOnly: stmt.filter(s => !pairs.some(p => p.stmt.id === s.id))
+  };
+}
+const isStmt = t => t.src === 'pdf';
+const isLog  = t => !isStmt(t) && !t.mt;
+
+/* ============================================================
+   Categorisation + FNB statement PDF parser  (verified 16/16
+   against the four Mar–Jul 2026 statements)
+   ============================================================ */
+const MON  = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+const NUM  = /^[\d,]+\.\d{2}$/;
+const DATE = /^(\d{2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/;
+
+const RULES = [
+  [/payment to rent|\brent\b/i,                                                    'Rent'],
+  [/payment to internet|\binternet\b/i,                                            'Internet'],
+  [/electricity|eskom|prepaid elec/i,                                              'Electricity'],
+  [/prepaid airtime|airtime|\bdata\b|a-t cell|vodacom|\bmtn\b|telkom|cell ?c/i,     'Airtime / data'],
+  [/astron|sasol|fuel purchase|engen|shell|caltex|bp\b|\bae\b/i, 'Fuel'],
+  [/food lovers|kwikspar|superspar|pnp crp|pick n pay|picardi|checkers|woolworths|shoprite|usave|\bspar\b/i, 'Groceries'],
+  [/\bkfc\b|mozambik|spur|debonairs|caffe mario|fish and chips|african bean|plato|eleven plet|social eatery|mr d food|uber eats|yoco|steers|nando|mcdonald|burger|pizza|restaurant|cafe|coffee/i, 'Eating out'],
+  [/\bgym\b|virgin active|planet fitness/i, 'Gym & sport'],
+  [/apple\.com|itunes|netflix|spotify|showmax|google|microsoft|adobe|dstv/i, 'Subscriptions'],
+  [/atm cash|cash withdrawal/i,                                                    'Cash withdrawals'],
+  [/\buber\b|\bbolt\b|taxi/i,                                                      'Transport'],
+  [/guest ?house|lodge|hotel|airbnb|\bbnb\b/i,                                    'Accommodation'],
+  [/payshap account off-us|send money app|instant money/i,                        'Transfers to people'],
+  [/mrprice|mrprices|pep home|\bpep\b|\bgame\b|clicks|dischem|\bphar/i,             'Retail / health'],
+  [/sterkinekor|takealot|amazon|ster kinekor|nu metro/i,                           'Retail / health'],
+  [/byc debit|service fee|magtape debit/i,                                         'Bank fees']
+];
+/* Never counted as spending: credits, movements between your own accounts,
+   and money sent to the Investment account (that is saving, not spending). */
+const SKIP = /transfer from|ob pmt|credit interest|cr int adj|interest adjustment|cash deposit|magtape unpaid|payshap credit|rtc credit|cr\.int\.rate|payment to investment|credit int paid|atm transfer|payment to business/i;
+
+function classify(desc){
+  const d = String(desc||'').trim();
+  if(d === '') return 'Bank fees';                /* unlabelled per-transaction fees */
+  /* your own rules win over the built-in ones */
+  const ur = (typeof S !== 'undefined' && S && S.rules) || [];
+  for(const r of ur){
+    try{ if(new RegExp(r.k, 'i').test(d)) return r.c; }catch(e){}
+  }
+  for(const [re, cat] of RULES) if(re.test(d)) return cat;
+  return 'Uncategorised';
+}
+
+/* Group a page's text items into visual rows (by y), left-to-right. */
+function pageRows(content){
+  const items = content.items.filter(i => i.str && i.str.trim() !== '');
+  const byY = new Map();
+  for(const i of items){
+    const y = Math.round(i.transform[5]);
+    let k = y;
+    for(const kk of byY.keys()) if(Math.abs(kk - y) <= 2){ k = kk; break; }
+    if(!byY.has(k)) byY.set(k, []);
+    byY.get(k).push(i);
+  }
+  return [...byY.entries()].sort((a,b)=> b[0]-a[0]).map(([,arr])=>{
+    arr.sort((a,b)=> a.transform[4]-b.transform[4]);
+    return arr.map(i => ({x:i.transform[4], s:i.str.trim()}));
+  });
+}
+
+/* FNB lays each line out as:
+   <date> <description> [card mask] <amount> [Cr] <balance> [Cr] [fee]
+   so numeric-only items appear only in the amount/balance/fee columns. */
+function rowToTx(row){
+  if(!row.length) return null;
+  const dm = DATE.exec(row[0].s);
+  if(!dm) return null;
+  const nums = row.filter(t => NUM.test(t.s));
+  if(nums.length < 2) return null;
+  const amt = nums[0], bal = nums[1];
+  const value = parseFloat(amt.s.replace(/,/g,''));
+  if(!value) return null;
+  const isCr = row.some(t => /^Cr$/i.test(t.s) && t.x > amt.x && t.x < bal.x);
+  const desc = row.filter(t => t.x > row[0].x + 5 && t.x < amt.x - 5 && !NUM.test(t.s))
+                  .map(t => t.s).join(' ')
+                  .replace(/\d{6}\*\d{4}.*$/,'')
+                  .replace(/\b(Fb\d+|Not Provided For|\d{8,})\b/g,'')
+                  .replace(/\s+/g,' ').trim();
+  return {day:+dm[1], mon:MON[dm[2]], a:value, cr:isCr, desc};
+}
+
+async function parsePdf(file){
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+  let rows = [], header = '';
+  for(let p=1; p<=pdf.numPages; p++){
+    const rs = pageRows(await (await pdf.getPage(p)).getTextContent());
+    rows = rows.concat(rs);
+    if(!header){
+      const h = rs.find(r => r.some(t => /Statement Period/i.test(t.s)));
+      if(h) header = h.map(t=>t.s).join(' ');
+    }
+  }
+  let year = new Date().getFullYear();
+  const ym = header.match(/(20\d{2})/g);
+  if(ym) year = +ym[ym.length-1];
+
+  const out = [], skipped = [];
+  let prevMonth = null;
+  for(const r of rows){
+    const t = rowToTx(r);
+    if(!t) continue;
+    let y = year;
+    if(prevMonth !== null && t.mon < prevMonth - 6) y = year + 1;   /* year rollover */
+    prevMonth = t.mon;
+    const d = y + '-' + String(t.mon).padStart(2,'0') + '-' + String(t.day).padStart(2,'0');
+    if(t.cr || SKIP.test(t.desc)){ skipped.push({d, a:t.a, desc:t.desc, cr:t.cr}); continue; }
+    out.push({d, a:t.a, desc:t.desc, c:classify(t.desc)});
+  }
+  return {tx:out, skipped, header};
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+function render(){
+  const c = cycle();
+  const active = S.tx.filter(t => !t.mt);            /* matched slips are folded away */
+  const tx = active.filter(t => inCycle(t,c));
+  const spentBy = {};
+  tx.forEach(t => spentBy[t.c] = (spentBy[t.c]||0) + t.a);
+  const spent  = tx.reduce((a,t)=>a+t.a, 0);
+  const budTot = S.cats.reduce((a,x)=>a+x.t, 0);
+
+  const msDay = 86400000, now = new Date();
+  const dayN = Math.min(Math.max(1, Math.floor((now - c.s)/msDay) + 1), 99);
+  const totalDays = Math.round((c.e - c.s)/msDay) + 1;
+  const daysLeft = Math.max(1, totalDays - dayN + 1);
+
+  document.getElementById('periodLbl').textContent = fmtD(c.s) + ' – ' + fmtD(c.e);
+  document.getElementById('dayLbl').textContent = dayN + '/' + totalDays;
+
+  const fixedTot   = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+x.t,0);
+  const fixedSpent = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+(spentBy[x.n]||0),0);
+  const fixedRem   = Math.max(0, fixedTot - fixedSpent);
+  const flexRem    = budTot - spent - fixedRem;
+  const perDay     = flexRem / daysLeft;
+
+  const st = document.getElementById('safeToday');
+  st.textContent = R(Math.max(0, perDay));
+  st.className = 'big ' + (perDay < 0 ? 'bd' : perDay < 120 ? 'wn' : 'ok');
+  document.getElementById('safeNote').textContent =
+    perDay < 0 ? 'You are ' + R(-flexRem) + ' over. Nothing left for the next ' + daysLeft + ' days.'
+               : R(Math.max(0,flexRem)) + ' flexible left over ' + daysLeft + ' day' + (daysLeft>1?'s':'')
+                 + ' (' + R(fixedRem) + ' still owed on fixed bills)';
+
+  document.getElementById('spent').textContent  = R(spent);
+  document.getElementById('budTot').textContent = R(budTot);
+  const pct = budTot ? spent/budTot*100 : 0;
+  const bar = document.getElementById('totBar');
+  bar.style.width = Math.min(100,pct) + '%';
+  bar.style.background = pct>100?'var(--bad)':pct>85?'var(--warn)':'var(--acc)';
+  document.getElementById('pctLbl').textContent  = Math.round(pct) + '% of budget used';
+  document.getElementById('leftLbl').textContent = (budTot-spent>=0? R(budTot-spent)+' left' : R(spent-budTot)+' over');
+
+  const al = [];
+  if(pct > dayN/totalDays*100 + 15 && spent > 0)
+    al.push('Burning faster than the calendar — ' + Math.round(pct) + '% of budget spent on day ' + dayN + ' of ' + totalDays + '.');
+  S.cats.forEach(x=>{ const sp = spentBy[x.n]||0;
+    if(x.t>0 && sp > x.t) al.push(x.n + ' is over by ' + R(sp-x.t) + '.'); });
+  const dup = findDuplicates(tx);
+  if(dup.length) al.push('Possible double charge: ' + dup[0]);
+  document.getElementById('alerts').innerHTML = al.slice(0,3).map(m=>'<div class="warnbox">'+esc(m)+'</div>').join('');
+
+  document.getElementById('catList').innerHTML = S.cats.map(x=>{
+    const sp = spentBy[x.n]||0, p = x.t ? sp/x.t*100 : (sp?100:0);
+    const col = x.t===0 ? 'var(--dim)' : p>100?'var(--bad)':p>85?'var(--warn)':'var(--acc)';
+    return '<div class="cat" onclick="catSheet(&quot;'+esc(x.n).replace(/'/g,'&#39;')+'&quot;)">'
+      + '<div class="row"><div class="n">'+esc(x.n)+(x.fixed?' <span class="tag">fixed</span>':'')+'</div>'
+      + '<div class="v">'+R(sp)+' <span style="color:var(--line)">/</span> '+R(x.t)+'</div></div>'
+      + '<div class="bar"><i style="width:'+Math.min(100,p)+'%;background:'+col+'"></i></div></div>';
+  }).join('');
+
+  const rec = [...active].sort((a,b)=> b.d.localeCompare(a.d) || String(b.id).localeCompare(String(a.id))).slice(0,25);
+  document.getElementById('recent').innerHTML = rec.length
+    ? rec.map(t=>'<tr><td><div style="font-weight:600">'+esc(t.note||t.c)+'</div>'
+        +'<div class="tag'+(t.src==='pdf'?' bl':'')+'">'+esc(t.c)+' &middot; '+t.d
+        +(t.src==='pdf'?' &middot; statement':t.photo?' &middot; slip':'')+'</div>'
+        +(t.rec?' <span class="tag ok">reconciled</span>':'')+'</td>'
+        +'<td class="r">'+R2(t.a)+'<div class="mini" style="font-weight:400">'
+        +(t.photo?'<a href="#" onclick="viewShot(&quot;'+t.id+'&quot;);return false" style="color:var(--blue);text-decoration:none">view</a> · ':'')
+        +'<a href="#" onclick="del(&quot;'+t.id+'&quot;);return false" style="color:var(--bad);text-decoration:none">remove</a></div></td></tr>').join('')
+    : '<tr><td class="mini">Nothing logged yet. Snap a slip or import a statement.</td></tr>';
+
+  document.getElementById('income').value   = S.income;
+  document.getElementById('cycleDay').value = S.cycleDay;
+  const sv = S.income - budTot;
+  document.getElementById('bSum').textContent = R(budTot);
+  const bs = document.getElementById('bSave');
+  bs.textContent = R(sv); bs.className = 'mono ' + (sv<0?'bd':'ok');
+  document.getElementById('saveRate').textContent = S.income
+    ? (sv>=0 ? Math.round(sv/S.income*100)+'% savings rate' : 'Budget exceeds income by '+R(-sv)) : '';
+
+  document.getElementById('budList').innerHTML = S.cats.map((x,i)=>
+     '<div class="cat"><div class="row">'
+    +'<div style="flex:1"><div class="n">'+esc(x.n)+'</div>'
+    +'<div class="mini">'+(x.base!=null?'was '+R(x.base)+'/mo':'&nbsp;')
+    + (x.base!=null && x.t<x.base ? ' <span class="ok">&#8595; '+R(x.base-x.t)+'</span>':'')+'</div></div>'
+    +'<input type="number" inputmode="decimal" value="'+x.t+'" style="max-width:96px;text-align:right" onchange="setT('+i+',this.value)">'
+    +'<button class="b d sm" onclick="delCat('+i+')">&times;</button>'
+    +'</div></div>').join('');
+
+  const sel = document.getElementById('mCat'), keep = sel.value;
+  sel.innerHTML = S.cats.map(x=>'<option>'+esc(x.n)+'</option>').join('');
+  if(keep) sel.value = keep;
+
+  const unrec = S.tx.filter(t => isLog(t) && !t.rec).length;
+  document.getElementById('matchDot').classList.toggle('on', unrec > 0 && S.tx.some(isStmt));
+
+  renderShortcuts(); renderTrend(); renderMatch(); storeInfo();
+}
+
+function findDuplicates(tx){
+  const seen = new Map(), out = [];
+  for(const t of tx){
+    const k = t.c + '|' + t.a.toFixed(2);
+    if(seen.has(k)){
+      const p = seen.get(k);
+      if(Math.abs(dayDiff(t.d, p.d)) <= 31 && t.a >= 100)
+        out.push((t.note||t.c) + ' — ' + R2(t.a) + ' twice (' + p.d + ' and ' + t.d + ')');
+    } else seen.set(k, t);
+  }
+  return out;
+}
+
+function renderShortcuts(){
+  document.getElementById('shortcuts').innerHTML =
+    '<div class="chips">' + (S.shortcuts||[]).map((s,i)=>
+      '<button class="chip" onclick="quick('+i+')">'+esc(s.l)+' <span style="color:var(--dim)">R'+s.a+'</span></button>'
+    ).join('') + '</div>';
+}
+
+function renderTrend(){
+  const by = {};
+  S.tx.filter(t=>!t.mt).forEach(t=>{ const m = t.d.slice(0,7);
+    (by[m] = by[m] || {tot:0,cats:{}}); by[m].tot += t.a; by[m].cats[t.c] = (by[m].cats[t.c]||0)+t.a; });
+  const ms = Object.keys(by).sort();
+  const el = document.getElementById('trendBody');
+  if(!ms.length){ el.innerHTML = '<div class="card mini">No data yet. Import a statement or snap a few slips.</div>'; return; }
+  const max = Math.max(...ms.map(m=>by[m].tot));
+  let h = '<div class="card"><div class="mini">Total spend by calendar month</div><div class="spark">'
+    + ms.map(m=>'<i style="height:'+(by[m].tot/max*100)+'%;background:var(--acc)"></i>').join('')
+    + '</div><div class="row mini" style="margin-top:6px"><span>'+ms[0]+'</span><span>'+ms[ms.length-1]+'</span></div></div>';
+  h += '<h2>By month</h2>';
+  ms.slice().reverse().forEach(m=>{
+    const top = Object.entries(by[m].cats).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    h += '<div class="card"><div class="row"><div style="font-weight:700">'+m+'</div>'
+       + '<div class="mono" style="font-weight:700">'+R(by[m].tot)+'</div></div>'
+       + '<table style="margin-top:6px">' + top.map(([k,v])=>
+           '<tr><td>'+esc(k)+'</td><td class="r">'+R(v)+'</td></tr>').join('') + '</table></div>';
+  });
+  el.innerHTML = h;
+}
+
+let matchView = 'all';
+document.getElementById('matchSeg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  matchView = b.dataset.v;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on', x===b));
+  renderMatch();
+});
+
+function renderMatch(){
+  const el = document.getElementById('matchBody');
+  const c = cycle();
+  const scope = t => matchView === 'all' ? true : inCycle(t, c);
+  const stmt   = S.tx.filter(t => isStmt(t) && scope(t));
+  const logged = S.tx.filter(t => isLog(t)  && scope(t));
+
+  if(!stmt.length){
+    el.innerHTML = '<div class="infobox">No statement imported for this period yet. '
+      + 'Log slips as you spend, then import the FNB PDF at month end — everything gets matched up here.</div>'
+      + '<div class="card"><div class="row"><div>Slips logged, awaiting a statement</div>'
+      + '<div class="mono" style="font-weight:700">'+logged.length+'</div></div>'
+      + '<div class="mini" style="margin-top:6px">Worth '+R2(logged.reduce((a,t)=>a+t.a,0))+'</div></div>';
+    return;
+  }
+
+  const {pairs, logOnly, stmtOnly} = matchSets(stmt, logged);
+  const pct = logged.length ? Math.round(pairs.length/logged.length*100) : 0;
+
+  let h = '<div class="card"><div class="row">'
+    + '<div><div class="mini">Slips matched to the statement</div>'
+    + '<div class="mono" style="font-size:23px;font-weight:700">'+pairs.length+' <span style="color:var(--dim);font-size:15px">of '+logged.length+'</span></div></div>'
+    + '<div style="text-align:right"><div class="mini">Capture rate</div>'
+    + '<div class="mono '+(pct>=80?'ok':pct>=50?'wn':'bd')+'" style="font-size:23px;font-weight:700">'+pct+'%</div></div></div>'
+    + '<div class="bar"><i style="width:'+pct+'%;background:'+(pct>=80?'var(--acc)':pct>=50?'var(--warn)':'var(--bad)')+'"></i></div></div>';
+
+  if(pairs.length)
+    h += '<div class="card"><button class="b" onclick="applyMatches()">Fold '+pairs.length+' matched slip'
+       + (pairs.length===1?'':'s')+' into the statement</button>'
+       + '<div class="mini" style="margin-top:8px">Keeps the statement amount and your slip photo, and stops the same spend being counted twice.</div></div>';
+
+  h += '<h2>On the statement, never logged &mdash; '+stmtOnly.length+'</h2>'
+    + '<div class="card">'
+    + (stmtOnly.length
+        ? '<div class="mini" style="margin-bottom:8px">Your blind spots. Worth '+R2(stmtOnly.reduce((a,t)=>a+t.a,0))+'.</div><table>'
+          + stmtOnly.sort((a,b)=>b.a-a.a).slice(0,40).map(t=>
+            '<tr><td>'+esc(t.note||t.c)+'<div class="tag">'+esc(t.c)+' &middot; '+t.d+'</div></td>'
+            +'<td class="r">'+R2(t.a)+'</td></tr>').join('') + '</table>'
+        : '<div class="mini">Nothing missed. Every statement line has a slip.</div>')
+    + '</div>';
+
+  h += '<h2>Logged, but not on the statement &mdash; '+logOnly.length+'</h2>'
+    + '<div class="card">'
+    + (logOnly.length
+        ? '<div class="mini" style="margin-bottom:8px">Either still pending at the bank, a mistyped amount, or a duplicate.</div><table>'
+          + logOnly.sort((a,b)=>b.d.localeCompare(a.d)).map(t=>
+            '<tr><td>'+esc(t.note||t.c)+'<div class="tag wn">'+esc(t.c)+' &middot; '+t.d+'</div></td>'
+            +'<td class="r">'+R2(t.a)
+            +'<div class="mini" style="font-weight:400"><a href="#" onclick="del(&quot;'+t.id+'&quot;);return false" style="color:var(--bad);text-decoration:none">delete</a></div></td></tr>').join('') + '</table>'
+        : '<div class="mini">Every slip you logged appears on the statement.</div>')
+    + '</div>';
+
+  if(pairs.length){
+    h += '<h2>Matched &mdash; '+pairs.length+'</h2><div class="card"><table>'
+      + pairs.slice(0,40).map(p=>
+        '<tr><td>'+esc(p.log.note||p.log.c)+'<div class="tag ok">matched to &ldquo;'+esc((p.stmt.note||'').slice(0,26))+'&rdquo;'
+        +(p.days?' &middot; '+p.days+'d apart':' &middot; same day')+'</div></td>'
+        +'<td class="r">'+R2(p.stmt.a)+'</td></tr>').join('') + '</table></div>';
+  }
+  el.innerHTML = h;
+}
+
+async function storeInfo(){
+  const el = document.getElementById('storeInfo');
+  if(!el) return;
+  const shots = S.tx.filter(t=>t.photo).length;
+  let q = '';
+  try{ if(navigator.storage && navigator.storage.estimate){
+    const e = await navigator.storage.estimate();
+    q = ' · using ' + (e.usage/1048576).toFixed(1) + ' MB of ' + (e.quota/1048576).toFixed(0) + ' MB available';
+  }}catch(e){}
+  el.textContent = S.tx.length + ' transactions · ' + shots + ' slip photos' + q;
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+function quick(i){
+  const s = (S.shortcuts||[])[i]; if(!s) return;
+  add({a:s.a, c:s.c, note:s.l, d:iso(new Date()), src:'quick'});
+  navigator.vibrate && navigator.vibrate(12);
+  flash('snapMsg','s', s.l + ' — ' + R2(s.a) + ' logged');
+  go('today');
+}
+function add(o){
+  S.tx.push(Object.assign({id:uid()}, o));
+  save(); render();
+}
+function addManual(){
+  const a = parseFloat(document.getElementById('mAmt').value);
+  if(!a || a<=0) return flash('addMsg','e','Enter an amount greater than zero.');
+  add({a, c:document.getElementById('mCat').value, note:document.getElementById('mNote').value,
+       d:document.getElementById('mDate').value || iso(new Date()), src:'manual'});
+  document.getElementById('mAmt').value=''; document.getElementById('mNote').value='';
+  flash('addMsg','s','Logged '+R2(a));
+}
+async function del(id){
+  const t = S.tx.find(x=>String(x.id)===String(id));
+  if(t && t.photo) await photoDel(t.photo);
+  S.tx = S.tx.filter(x=>String(x.id)!==String(id));
+  save(); render();
+}
+function setT(i,v){ S.cats[i].t = Math.max(0, +v||0); save(); render(); }
+function setIncome(v){ S.income = +v||0; save(); render(); }
+function setCycleDay(v){ S.cycleDay = Math.min(28, Math.max(1, +v||1)); save(); render(); }
+function addCat(){
+  const n = document.getElementById('newCat').value.trim();
+  const a = +document.getElementById('newAmt').value||0;
+  if(!n) return;
+  if(S.cats.some(x=>x.n.toLowerCase()===n.toLowerCase())) return alert('That category already exists.');
+  S.cats.push({n, t:a});
+  document.getElementById('newCat').value=''; document.getElementById('newAmt').value='';
+  save(); render();
+}
+function delCat(i){
+  const n = S.cats[i].n;
+  const used = S.tx.filter(t=>t.c===n).length;
+  if(used && !confirm(n+' has '+used+' transaction(s). Delete the category anyway?')) return;
+  S.cats.splice(i,1); save(); render();
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html){ document.getElementById('sheetBody').innerHTML = html; document.getElementById('sheet').classList.add('on'); }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); }
+document.getElementById('sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') closeSheet(); });
+
+function catSheet(name){
+  const c = cycle();
+  const list = S.tx.filter(t=>t.c===name && !t.mt && inCycle(t,c)).sort((a,b)=>b.d.localeCompare(a.d));
+  const cat = S.cats.find(x=>x.n===name) || {t:0};
+  const sp = list.reduce((a,t)=>a+t.a,0);
+  openSheet(
+    '<div class="row"><h1>'+esc(name)+'</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="sub">'+R2(sp)+' of '+R(cat.t)+' this cycle · '+list.length+' transaction'+(list.length===1?'':'s')+'</div>'
+    + (cat.base!=null ? '<div class="mini" style="margin-top:4px">Your Mar–Jul average was '+R(cat.base)+'/month</div>' : '')
+    + '<div class="card" style="margin-top:14px"><table>'
+    + (list.length ? list.map(t=>'<tr><td>'+esc(t.note||'—')+'<div class="tag">'+t.d+'</div></td><td class="r">'+R2(t.a)+'</td></tr>').join('')
+                   : '<tr><td class="mini">Nothing here this cycle.</td></tr>')
+    + '</table></div>');
+}
+
+async function viewShot(id){
+  const t = S.tx.find(x=>String(x.id)===String(id));
+  if(!t || !t.photo) return;
+  const u = await photoUrl(t.photo);
+  openSheet('<div class="row"><h1>'+esc(t.note||t.c)+'</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="sub">'+R2(t.a)+' · '+t.d+' · '+esc(t.c)+'</div>'
+    + (u ? '<img class="shot" style="margin-top:12px" src="'+u+'">' : '<div class="mini" style="margin-top:12px">Photo no longer stored.</div>'));
+}
+
+function flash(id,kind,msg){
+  const el = document.getElementById(id); if(!el) return;
+  el.className = 'msg ' + kind; el.textContent = msg;
+  clearTimeout(el._t); el._t = setTimeout(()=>{ el.className='msg'; }, 5000);
+}
+
+/* ---------- nav ---------- */
+function go(t){
+  document.querySelectorAll('.tab').forEach(s=>s.classList.remove('on'));
+  document.getElementById('t-'+t).classList.add('on');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav button').forEach(b=> b.onclick = ()=> go(b.dataset.t));
+
+/* ============================================================
+   Slip capture flow
+   ============================================================ */
+document.getElementById('camIn').onchange = e => { const f = e.target.files[0]; if(f) snap(f); e.target.value=''; };
+document.getElementById('galIn').onchange = e => { const f = e.target.files[0]; if(f) snap(f); e.target.value=''; };
+
+async function snap(file){
+  const prog = document.getElementById('ocrProg'), bar = prog.firstElementChild;
+  prog.style.display = 'block'; bar.style.width = '2%';
+  const onProg = (p,label) => { bar.style.width = Math.round(p*100)+'%'; if(label) flash('snapMsg','i',label); };
+  try{
+    const [thumb, ocrImg] = await Promise.all([ shrink(file, 1000, 0.6), forOcr(file) ]);
+    let text = '';
+    try{ text = await runOcr(ocrImg, onProg); }
+    catch(err){ flash('snapMsg','wn','OCR unavailable — enter the amount yourself.'); }
+    const r = extractReceipt(text);
+    prog.style.display = 'none';
+    confirmSheet(r, thumb);
+  }catch(err){
+    prog.style.display = 'none';
+    console.error(err);
+    flash('snapMsg','e','Could not read that image: ' + err.message);
+  }
+}
+
+let _pendingThumb = null;
+function confirmSheet(r, thumb){
+  _pendingThumb = thumb;
+  const url = URL.createObjectURL(thumb);
+  const conf = r.total != null;
+  openSheet(
+      '<div class="row"><h1>Check before saving</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
+    + (conf ? '<div class="sub">Read from ' + esc(r.how) + '. Correct anything that is wrong.</div>'
+            : '<div class="warnbox" style="margin-top:10px">Could not find a total on this slip. Type the amount in.</div>')
+    + '<img class="shot" style="margin-top:12px" src="'+url+'">'
+    + '<label>Amount (R)</label><input id="cAmt" type="number" inputmode="decimal" step="0.01" value="'+(r.total??'')+'">'
+    + '<label>Where</label><input id="cNote" value="'+esc(r.merchant)+'">'
+    + '<label>Category</label><select id="cCat">'+S.cats.map(x=>'<option'+(x.n===r.cat?' selected':'')+'>'+esc(x.n)+'</option>').join('')+'</select>'
+    + '<label>Date</label><input id="cDate" type="date" value="'+r.date+'">'
+    + '<div style="height:14px"></div><button class="b" onclick="saveSlip()">Save slip</button>'
+    + '<details><summary>What the OCR actually read</summary><pre>'+esc((r.text||'(nothing)').slice(0,1400))+'</pre></details>');
+}
+
+async function saveSlip(){
+  const a = parseFloat(document.getElementById('cAmt').value);
+  if(!a || a<=0) return alert('Enter an amount greater than zero.');
+  const pid = uid();
+  try{ await photoPut(pid, _pendingThumb); }catch(e){ console.warn('photo not stored', e); }
+  add({a, c:document.getElementById('cCat').value, note:document.getElementById('cNote').value.trim(),
+       d:document.getElementById('cDate').value || iso(new Date()), src:'slip', photo:pid});
+  _pendingThumb = null;
+  closeSheet();
+  flash('snapMsg','s','Slip saved — '+R2(a));
+  go('today');
+}
+
+/* ============================================================
+   Statement import
+   ============================================================ */
+const drop = document.getElementById('drop'), fileEl = document.getElementById('file');
+drop.onclick = () => fileEl.click();
+['dragenter','dragover'].forEach(e=> drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.classList.add('hot'); }));
+['dragleave','drop'].forEach(e=> drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.classList.remove('hot'); }));
+drop.addEventListener('drop', ev=>{ const f = ev.dataTransfer.files[0]; if(f) handle(f); });
+fileEl.onchange = e => { const f = e.target.files[0]; if(f) handle(f); e.target.value=''; };
+
+let pending = null;
+async function handle(f){
+  flash('impMsg','i','Reading ' + f.name + ' …');
+  document.getElementById('impResult').innerHTML = '';
+  try{
+    const r = await parsePdf(f);
+    if(!r.tx.length) return flash('impMsg','e','No spending transactions found. Is this an FNB statement PDF rather than a screenshot?');
+
+    const seen = new Set(S.tx.filter(isStmt).map(t=>t.d+'|'+t.a.toFixed(2)+'|'+(t.note||'')));
+    const fresh = r.tx.filter(t => !seen.has(t.d+'|'+t.a.toFixed(2)+'|'+t.desc));
+    const dupes = r.tx.length - fresh.length;
+    pending = fresh.map(t => ({id:uid(), a:t.a, c:t.c, note:t.desc, d:t.d, src:'pdf'}));
+
+    /* how many of these will pair with slips already logged */
+    const logged = S.tx.filter(isLog);
+    const {pairs} = matchSets(pending, logged);
+
+    const byCat = {};
+    pending.forEach(t => byCat[t.c] = (byCat[t.c]||0) + t.a);
+    const tot = pending.reduce((a,t)=>a+t.a,0);
+
+    flash('impMsg','s','Parsed ' + r.tx.length + ' debits' + (dupes? ' · ' + dupes + ' already imported' : ''));
+    document.getElementById('impResult').innerHTML =
+        '<div class="card"><div class="row"><div style="font-weight:700">'+pending.length+' new statement lines</div>'
+      + '<div class="mono" style="font-weight:700">'+R2(tot)+'</div></div>'
+      + '<div class="mini" style="margin-top:4px">Credits, transfers between your own accounts and payments to Investment were excluded — they are not spending.</div>'
+      + (pairs.length ? '<div class="infobox" style="margin-top:11px">'+pairs.length+' of these already match slips you logged. They will be folded together, not double-counted.</div>' : '')
+      + '<table style="margin-top:10px">'
+      + Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>
+          '<tr><td>'+esc(k)+'</td><td class="r">'+R(v)+'</td></tr>').join('')
+      + '</table><div style="height:12px"></div>'
+      + (pending.length ? '<button class="b" onclick="commit()">Add these '+pending.length+' and reconcile</button>'
+                        : '<div class="mini">Nothing new to add.</div>')
+      + '</div>'
+      + '<h2>Preview</h2><div class="card"><table>'
+      + pending.slice(0,60).map(t=>'<tr><td>'+esc(t.note||'(bank fee)')+'<div class="tag">'+esc(t.c)+' &middot; '+t.d+'</div></td><td class="r">'+R2(t.a)+'</td></tr>').join('')
+      + (pending.length>60 ? '<tr><td class="mini">…and '+(pending.length-60)+' more</td><td></td></tr>' : '')
+      + '</table></div>';
+  }catch(err){
+    console.error(err);
+    flash('impMsg','e','Could not read that PDF: ' + err.message);
+  }
+}
+function commit(){
+  if(!pending || !pending.length) return;
+  pending.forEach(t=>{
+    if(!S.cats.some(c=>c.n===t.c)) S.cats.push({n:t.c, t:0});
+    S.tx.push(t);
+  });
+  const n = pending.length; pending = null;
+  save(); render();
+  flash('impMsg','s', n + ' statement lines added. Check the Match tab.');
+  go('match');
+}
+
+/* Fold matched slips into their statement lines: statement amount wins,
+   slip photo and wording are carried across, slip stops being counted. */
+function applyMatches(){
+  const c = cycle();
+  const scope = t => matchView === 'all' ? true : inCycle(t, c);
+  const {pairs} = matchSets(S.tx.filter(t=>isStmt(t)&&scope(t)), S.tx.filter(t=>isLog(t)&&scope(t)));
+  if(!pairs.length) return;
+  pairs.forEach(p=>{
+    const s = S.tx.find(t=>t.id===p.stmt.id), l = S.tx.find(t=>t.id===p.log.id);
+    if(!s||!l) return;
+    if(l.photo && !s.photo) s.photo = l.photo;
+    if(l.note && l.note.length > (s.note||'').length) s.note = l.note;
+    if(l.c && l.c !== 'Uncategorised') s.c = l.c;   /* your categorisation beats the rule engine */
+    s.rec = true;
+    l.mt = s.id; l.rec = true;                      /* folded away, kept for the audit trail */
+  });
+  save(); render();
+  alert(pairs.length + ' slip' + (pairs.length===1?'':'s') + ' folded into the statement.');
+}
+
+/* ============================================================
+   Backup / restore
+   ============================================================ */
+function exportData(){ dl(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}), 'budget-backup-'+iso(new Date())+'.json'); }
+function exportCsv(){
+  const rows = [['date','amount','category','note','source','reconciled']]
+    .concat([...S.tx].sort((a,b)=>a.d.localeCompare(b.d))
+      .map(t=>[t.d, t.a.toFixed(2), t.c, (t.note||'').replace(/"/g,"'"), t.src||'', t.rec?'yes':'no']));
+  dl(new Blob([rows.map(r=>r.map(v=>'"'+v+'"').join(',')).join('\n')],{type:'text/csv'}),
+     'transactions-'+iso(new Date())+'.csv');
+}
+function dl(blob, name){
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(u), 1500);
+}
+document.getElementById('impJson').onchange = e =>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () =>{ try{ S = Object.assign(structuredClone(DEFAULTS), JSON.parse(r.result)); save(); render(); alert('Restored.'); }
+                    catch(err){ alert('That file could not be read.'); } };
+  r.readAsText(f);
+};
+async function purgePhotos(){
+  const cut = iso(new Date(Date.now() - 90*86400000));
+  const old = S.tx.filter(t => t.photo && t.d < cut);
+  if(!old.length) return alert('No slip photos older than 90 days.');
+  if(!confirm('Delete ' + old.length + ' photo(s)? The transactions themselves stay.')) return;
+  for(const t of old){ await photoDel(t.photo); delete t.photo; }
+  save(); render(); alert('Deleted ' + old.length + ' photo(s).');
+}
+async function wipe(){
+  if(!confirm('Erase all transactions, budget settings and slip photos on this device? This cannot be undone.')) return;
+  for(const t of S.tx) if(t.photo) await photoDel(t.photo);
+  localStorage.removeItem(KEY); localStorage.removeItem('wnBudget_v1');
+  S = structuredClone(DEFAULTS); render();
+}
+
+/* ---------- service worker: offline + installable ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW failed', e)));
+}
+
+/* ---------- boot ---------- */
+document.getElementById('mDate').value = iso(new Date());
+render();
+if(!S.tx.length && !S.income){
+  document.getElementById('alerts').innerHTML =
+    '<div class="infobox"><b>First run.</b> Set your income and pay day under Budget, '
+    + 'or restore your setup file there to load your categories, targets and shortcuts in one go.</div>';
+}
+</script>
+</body>
+</html>
