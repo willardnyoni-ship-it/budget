@@ -857,7 +857,8 @@ function render(){
   document.getElementById('cycleTitle').textContent = isNow ? 'This month'
       : c.s.toLocaleDateString('en-ZA',{month:'long',year:'numeric'});
   document.getElementById('periodLbl').textContent = fmtD(c.s) + ' – ' + fmtD(c.e);
-  document.getElementById('dayLbl').textContent = isNow ? 'Day ' + dayN + ' of ' + totalDays : 'Closed period';
+  document.getElementById('dayLbl').innerHTML = isNow ? 'Day ' + dayN + ' of ' + totalDays
+    : '<a href="#" onclick="gotoCycle(0);return false" style="color:var(--blue);text-decoration:none">&#8617; Back to this month</a>';
   document.getElementById('cycleCount').textContent =
       tx.length + ' transaction' + (tx.length===1?'':'s');
   document.getElementById('nextBtn').style.visibility = isNow ? 'hidden' : 'visible';
