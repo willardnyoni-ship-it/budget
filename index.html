@@ -119,9 +119,16 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 
 <!-- ================= TODAY ================= -->
 <section class="tab on" id="t-today">
+  <div class="row" style="margin-bottom:4px">
+    <button class="b g sm" style="width:auto" onclick="shiftCycle(-1)" aria-label="Previous month">&#10094;</button>
+    <div style="text-align:center;flex:1">
+      <h1 id="cycleTitle">This month</h1>
+      <div class="sub" id="periodLbl"></div>
+    </div>
+    <button class="b g sm" id="nextBtn" style="width:auto" onclick="shiftCycle(1)" aria-label="Next month">&#10095;</button>
+  </div>
   <div class="row" style="margin-bottom:12px">
-    <div><h1>This month</h1><div class="sub" id="periodLbl"></div></div>
-    <div style="text-align:right"><div class="mini">Day</div><div class="mono" style="font-weight:700" id="dayLbl"></div></div>
+    <div class="mini" id="dayLbl"></div><div class="mini" id="cycleCount"></div>
   </div>
 
   <div class="card hero">
@@ -241,6 +248,14 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <button class="b g" onclick="addCat()">Add category</button>
   </div>
 
+  <h2>Categorisation</h2>
+  <div class="card">
+    <div class="mini" id="uncInfo" style="margin-bottom:10px"></div>
+    <button class="b g" onclick="recategorise()">Recategorise all transactions</button>
+    <div class="mini" style="margin-top:8px">Re-applies your merchant rules to everything already imported.
+    Run this after restoring a setup file or adding rules.</div>
+  </div>
+
   <h2>Data</h2>
   <div class="card">
     <div class="mini" id="storeInfo" style="margin-bottom:10px"></div>
@@ -355,13 +370,23 @@ const esc = s => String(s??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const dayDiff = (a,b) => Math.round((new Date(a+'T12:00:00') - new Date(b+'T12:00:00'))/86400000);
 
-function cycle(ref){
-  const d = ref ? new Date(ref) : new Date();
-  const cd = S.cycleDay || 1;
+let cycleOffset = 0;                 /* 0 = current cycle, -1 = previous, ... */
+function cycleAt(off){
+  const cd = S.cycleDay || 1, d = new Date();
   let s = new Date(d.getFullYear(), d.getMonth(), cd);
   if(d.getDate() < cd) s = new Date(d.getFullYear(), d.getMonth()-1, cd);
+  s = new Date(s.getFullYear(), s.getMonth() + off, cd);
   const e = new Date(s.getFullYear(), s.getMonth()+1, cd); e.setDate(e.getDate()-1);
   return {s, e};
+}
+function cycle(){ return cycleAt(cycleOffset); }
+function shiftCycle(d){ cycleOffset = Math.min(0, cycleOffset + d); render(); }
+/* how many cycles back the oldest transaction sits */
+function oldestOffset(){
+  if(!S.tx.length) return 0;
+  const oldest = S.tx.map(t=>t.d).sort()[0];
+  for(let o=0; o>-60; o--){ if(cycleAt(o).s <= new Date(oldest+'T12:00:00')) return o; }
+  return -60;
 }
 const inCycle = (t,c) => { const d = new Date(t.d+'T12:00:00');
   return d >= c.s && d <= new Date(c.e.getFullYear(),c.e.getMonth(),c.e.getDate(),23,59); };
@@ -420,23 +445,42 @@ async function shrink(file, maxW, q){
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return await new Promise(r => c.toBlob(r, 'image/jpeg', q));
 }
-/* Higher-contrast greyscale copy purely for OCR — not stored */
-async function forOcr(file){
+/* Greyscale + auto-levels copy purely for OCR — not stored.
+   Deliberately does NOT hard-threshold: Tesseract binarises internally and
+   does it better than a fixed cutoff, which wipes out dim or shadowed slips. */
+async function forOcr(file, scaleTo){
   const img = await toBitmap(file);
   const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
-  const sc = Math.min(1, 1600 / w);
+  /* Tesseract wants roughly 1500-2200px on the long edge; upscale small photos too */
+  const target = scaleTo || 1900;
+  const sc = target / Math.max(w, h);
   const c = document.createElement('canvas');
-  c.width = Math.round(w*sc); c.height = Math.round(h*sc);
+  c.width = Math.max(1, Math.round(w*sc)); c.height = Math.max(1, Math.round(h*sc));
   const x = c.getContext('2d');
+  x.imageSmoothingQuality = 'high';
   x.drawImage(img, 0, 0, c.width, c.height);
+
   const d = x.getImageData(0,0,c.width,c.height), p = d.data;
+  /* pass 1: greyscale + build a histogram */
+  const hist = new Uint32Array(256);
   for(let i=0;i<p.length;i+=4){
-    let g = 0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2];
-    g = g < 110 ? 0 : g > 165 ? 255 : (g-110)*(255/55);   /* stretch contrast */
-    p[i]=p[i+1]=p[i+2]=g;
+    const g = (0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2]) | 0;
+    p[i]=p[i+1]=p[i+2]=g; hist[g]++;
+  }
+  /* pass 2: stretch between the 2nd and 98th percentile (robust auto-levels) */
+  const total = c.width*c.height;
+  let lo = 0, hi = 255, acc = 0;
+  for(let i=0;i<256;i++){ acc += hist[i]; if(acc > total*0.02){ lo = i; break; } }
+  acc = 0;
+  for(let i=255;i>=0;i--){ acc += hist[i]; if(acc > total*0.02){ hi = i; break; } }
+  if(hi - lo < 24){ lo = 0; hi = 255; }            /* flat image: leave it alone */
+  const span = 255/(hi-lo);
+  for(let i=0;i<p.length;i+=4){
+    const v = Math.max(0, Math.min(255, (p[i]-lo)*span));
+    p[i]=p[i+1]=p[i+2]=v;
   }
   x.putImageData(d,0,0);
-  return await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+  return await new Promise(r => c.toBlob(r, 'image/jpeg', 0.95));
 }
 
 /* ============================================================
@@ -447,15 +491,17 @@ function loadScript(src){
     s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Could not load OCR engine — check your connection the first time.'));
     document.head.appendChild(s); });
 }
-async function runOcr(blob, onProg){
+async function runOcr(blob, onProg, psm){
   if(!window.Tesseract){
     onProg(0.02, 'Downloading OCR engine (first time only)…');
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
   }
   onProg(0.1, 'Reading slip…');
+  /* psm 4 = a single column of text of varying sizes, which is what a till slip is.
+     The default (3, full auto page layout) tends to shred narrow receipts. */
   const res = await Tesseract.recognize(blob, 'eng', {
-    logger: m => { if(m.status === 'recognizing text') onProg(0.1 + m.progress*0.9, 'Reading slip…'); }
-  });
+    logger: m => { if(m.status === 'recognizing text') onProg(0.1 + m.progress*0.85, 'Reading slip…'); }
+  }, { tessedit_pageseg_mode: psm || '4' });
   return res.data.text || '';
 }
 
@@ -504,15 +550,23 @@ function extractReceipt(text){
     if(date) break;
   }
 
-  /* --- merchant: first substantial alphabetic line near the top --- */
-  let merchant = '';
-  for(const l of lines.slice(0,7)){
-    const clean = l.replace(/[^A-Za-z0-9&'*\s\-\.]/g,'').trim();
-    if(clean.length >= 4 && /[A-Za-z]{3}/.test(clean) &&
-       !/^(tax invoice|invoice|vat|reg|tel|receipt|slip|copy)/i.test(clean)){
-      merchant = clean.slice(0,34); break;
-    }
+  /* --- merchant --- Prefer a top line that our rules actually recognise;
+     otherwise the first line that looks like a trading name rather than an
+     address, phone number, VAT number or date. */
+  const NOISE = /^(tax invoice|invoice|vat|reg\b|vat reg|tel\b|fax|receipt|slip|copy|cash ?ier|terminal|merchant|date|time|customer|welcome|thank|www\.|http|p\.?o\.? box|shop \d|tel:)/i;
+  const looksLikeAddress = l => /\b(street|str\b|road|rd\b|ave\b|avenue|drive|dr\b|mall|centre|center|p o box|box \d)\b/i.test(l) && /\d/.test(l);
+  const cands = [];
+  for(const l of lines.slice(0,8)){
+    const clean = l.replace(/[^A-Za-z0-9&'*\s\-\.]/g,'').replace(/\s+/g,' ').trim();
+    const letters = (clean.match(/[A-Za-z]/g)||[]).length;
+    if(letters < 3 || clean.length < 4) continue;
+    if(NOISE.test(clean) || looksLikeAddress(clean)) continue;
+    if(letters / clean.length < 0.45) continue;            /* mostly digits -> not a name */
+    cands.push(clean.slice(0,34));
   }
+  let merchant = '';
+  for(const cnd of cands){ if(classify(cnd) !== 'Uncategorised'){ merchant = cnd; break; } }
+  if(!merchant) merchant = cands[0] || '';
 
   const cat = classify(merchant + ' ' + lines.slice(0,10).join(' '));
   return {total, date: date || iso(new Date()), merchant, cat, how, text};
@@ -561,8 +615,8 @@ const RULES = [
   [/payment to internet|\binternet\b/i,                                            'Internet'],
   [/electricity|eskom|prepaid elec/i,                                              'Electricity'],
   [/prepaid airtime|airtime|\bdata\b|a-t cell|vodacom|\bmtn\b|telkom|cell ?c/i,     'Airtime / data'],
-  [/astron|sasol|fuel purchase|engen|shell|caltex|bp\b|\bae\b/i, 'Fuel'],
-  [/food lovers|kwikspar|superspar|pnp crp|pick n pay|picardi|checkers|woolworths|shoprite|usave|\bspar\b/i, 'Groceries'],
+  [/astron|sasol|fuel purchase|engen|shell|caltex|bp\b|\bae\b|petroleum|garage|filling ?station|\bfuel\b/i, 'Fuel'],
+  [/food lovers|kwikspar|superspar|pnp crp|pick n pay|picardi|checkers|woolworths|shoprite|usave|\bspar\b|supermarket|super ?mkt|grocer/i, 'Groceries'],
   [/\bkfc\b|mozambik|spur|debonairs|caffe mario|fish and chips|african bean|plato|eleven plet|social eatery|mr d food|uber eats|yoco|steers|nando|mcdonald|burger|pizza|restaurant|cafe|coffee/i, 'Eating out'],
   [/\bgym\b|virgin active|planet fitness/i, 'Gym & sport'],
   [/apple\.com|itunes|netflix|spotify|showmax|google|microsoft|adobe|dstv/i, 'Subscriptions'],
@@ -677,8 +731,14 @@ function render(){
   const totalDays = Math.round((c.e - c.s)/msDay) + 1;
   const daysLeft = Math.max(1, totalDays - dayN + 1);
 
+  const isNow = cycleOffset === 0;
+  document.getElementById('cycleTitle').textContent = isNow ? 'This month'
+      : c.s.toLocaleDateString('en-ZA',{month:'long',year:'numeric'});
   document.getElementById('periodLbl').textContent = fmtD(c.s) + ' – ' + fmtD(c.e);
-  document.getElementById('dayLbl').textContent = dayN + '/' + totalDays;
+  document.getElementById('dayLbl').textContent = isNow ? 'Day ' + dayN + ' of ' + totalDays : 'Closed period';
+  document.getElementById('cycleCount').textContent =
+      tx.length + ' transaction' + (tx.length===1?'':'s');
+  document.getElementById('nextBtn').style.visibility = isNow ? 'hidden' : 'visible';
 
   const fixedTot   = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+x.t,0);
   const fixedSpent = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+(spentBy[x.n]||0),0);
@@ -687,12 +747,24 @@ function render(){
   const perDay     = flexRem / daysLeft;
 
   const st = document.getElementById('safeToday');
-  st.textContent = R(Math.max(0, perDay));
-  st.className = 'big ' + (perDay < 0 ? 'bd' : perDay < 120 ? 'wn' : 'ok');
-  document.getElementById('safeNote').textContent =
-    perDay < 0 ? 'You are ' + R(-flexRem) + ' over. Nothing left for the next ' + daysLeft + ' days.'
-               : R(Math.max(0,flexRem)) + ' flexible left over ' + daysLeft + ' day' + (daysLeft>1?'s':'')
-                 + ' (' + R(fixedRem) + ' still owed on fixed bills)';
+  const heroLbl = document.querySelector('#t-today .hero .lbl');
+  if(isNow){
+    heroLbl.textContent = 'Safe to spend today';
+    st.textContent = R(Math.max(0, perDay));
+    st.className = 'big ' + (perDay < 0 ? 'bd' : perDay < 120 ? 'wn' : 'ok');
+    document.getElementById('safeNote').textContent =
+      perDay < 0 ? 'You are ' + R(-flexRem) + ' over. Nothing left for the next ' + daysLeft + ' days.'
+                 : R(Math.max(0,flexRem)) + ' flexible left over ' + daysLeft + ' day' + (daysLeft>1?'s':'')
+                   + ' (' + R(fixedRem) + ' still owed on fixed bills)';
+  } else {
+    /* a closed period: safe-to-spend is meaningless, show the outcome instead */
+    heroLbl.textContent = 'Spent this period';
+    st.textContent = R(spent);
+    st.className = 'big ' + (budTot && spent > budTot ? 'bd' : 'ok');
+    document.getElementById('safeNote').textContent = budTot
+      ? (spent <= budTot ? R(budTot-spent) + ' under budget' : R(spent-budTot) + ' over budget')
+      : 'No budget was set for this period.';
+  }
 
   document.getElementById('spent').textContent  = R(spent);
   document.getElementById('budTot').textContent = R(budTot);
@@ -710,7 +782,25 @@ function render(){
     if(x.t>0 && sp > x.t) al.push(x.n + ' is over by ' + R(sp-x.t) + '.'); });
   const dup = findDuplicates(tx);
   if(dup.length) al.push('Possible double charge: ' + dup[0]);
-  document.getElementById('alerts').innerHTML = al.slice(0,3).map(m=>'<div class="warnbox">'+esc(m)+'</div>').join('');
+  let alertHtml = al.slice(0,3).map(m=>'<div class="warnbox">'+esc(m)+'</div>').join('');
+
+  /* Imported history sits in past cycles — say so rather than showing a bare R0. */
+  if(!tx.length && active.length){
+    const months = [...new Set(active.map(t=>t.d.slice(0,7)))].sort();
+    const jump = latestCycleWithData();
+    alertHtml = '<div class="infobox"><b>Nothing in this period yet.</b> You have '
+      + active.length + ' transactions on record from ' + months[0] + ' to ' + months[months.length-1] + '. '
+      + (jump !== null ? '<a href="#" onclick="gotoCycle('+jump+');return false" style="color:var(--blue)"><b>View '
+          + cycleAt(jump).s.toLocaleDateString('en-ZA',{month:'long',year:'numeric'}) + '</b></a>, or check Trends.'
+          : 'Check Trends.')
+      + '</div>' + alertHtml;
+  }
+  const uncTot = active.filter(t=>t.c==='Uncategorised').reduce((a,t)=>a+t.a,0);
+  if(uncTot > 0 && !(S.rules||[]).length){
+    alertHtml += '<div class="warnbox">' + R(uncTot) + ' of spending is Uncategorised. '
+      + 'Restore your setup file under Budget to load your merchant rules, then tap Recategorise.</div>';
+  }
+  document.getElementById('alerts').innerHTML = alertHtml;
 
   document.getElementById('catList').innerHTML = S.cats.map(x=>{
     const sp = spentBy[x.n]||0, p = x.t ? sp/x.t*100 : (sp?100:0);
@@ -759,6 +849,15 @@ function render(){
 
   renderShortcuts(); renderTrend(); renderMatch(); storeInfo();
 }
+
+function latestCycleWithData(){
+  for(let o = 0; o > oldestOffset()-1; o--){
+    const c = cycleAt(o);
+    if(S.tx.some(t => !t.mt && inCycle(t,c))) return o;
+  }
+  return null;
+}
+function gotoCycle(o){ cycleOffset = o; render(); window.scrollTo(0,0); }
 
 function findDuplicates(tx){
   const seen = new Map(), out = [];
@@ -872,6 +971,23 @@ function renderMatch(){
   el.innerHTML = h;
 }
 
+/* Re-apply rules to transactions that were imported before the rules existed. */
+function recategorise(opts){
+  const silent = opts && opts.silent;
+  let changed = 0;
+  for(const t of S.tx){
+    if(t.src !== 'pdf' && t.src !== 'slip') continue;   /* leave hand-typed entries alone */
+    if(t.userCat) continue;                             /* respect manual overrides */
+    const c = classify(t.note || '');
+    if(c !== t.c){ t.c = c; changed++; }
+  }
+  /* make sure every resulting category exists as a budget line */
+  for(const t of S.tx) if(!S.cats.some(c=>c.n===t.c)) S.cats.push({n:t.c, t:0});
+  save(); render();
+  if(!silent) alert(changed ? 'Recategorised ' + changed + ' transaction(s).' : 'Nothing changed — every transaction already matches your rules.');
+  return changed;
+}
+
 async function storeInfo(){
   const el = document.getElementById('storeInfo');
   if(!el) return;
@@ -882,6 +998,12 @@ async function storeInfo(){
     q = ' · using ' + (e.usage/1048576).toFixed(1) + ' MB of ' + (e.quota/1048576).toFixed(0) + ' MB available';
   }}catch(e){}
   el.textContent = S.tx.length + ' transactions · ' + shots + ' slip photos' + q;
+  const ui = document.getElementById('uncInfo');
+  if(ui){
+    const u = S.tx.filter(t=>!t.mt && t.c==='Uncategorised');
+    ui.textContent = (S.rules||[]).length + ' custom rule(s) loaded · '
+      + u.length + ' transaction(s) uncategorised' + (u.length ? ' worth ' + R2(u.reduce((a,t)=>a+t.a,0)) : '');
+  }
 }
 
 /* ============================================================
@@ -987,10 +1109,22 @@ async function snap(file){
   const onProg = (p,label) => { bar.style.width = Math.round(p*100)+'%'; if(label) flash('snapMsg','i',label); };
   try{
     const [thumb, ocrImg] = await Promise.all([ shrink(file, 1000, 0.6), forOcr(file) ]);
-    let text = '';
-    try{ text = await runOcr(ocrImg, onProg); }
-    catch(err){ flash('snapMsg','wn','OCR unavailable — enter the amount yourself.'); }
-    const r = extractReceipt(text);
+    let text = '', r = null;
+    try{
+      text = await runOcr(ocrImg, onProg, '4');
+      r = extractReceipt(text);
+      /* Nothing usable? Try once more with a different page-segmentation mode.
+         Slips shot at an angle or with a wide margin often only read on the retry. */
+      if(r.total == null || !r.merchant){
+        onProg(0.9, 'Retrying with a different reading mode…');
+        const alt = await runOcr(await forOcr(file, 2400), p=>onProg(0.9 + p*0.1), '6');
+        const r2 = extractReceipt(alt);
+        const score = x => (x.total != null ? 2 : 0) + (x.merchant ? 1 : 0) + (x.text.length > 40 ? 1 : 0);
+        if(score(r2) > score(r)){ r = r2; text = alt; }
+      }
+    }
+    catch(err){ console.warn(err); flash('snapMsg','wn','OCR unavailable — enter the amount yourself.'); }
+    if(!r) r = extractReceipt(text);
     prog.style.display = 'none';
     confirmSheet(r, thumb);
   }catch(err){
@@ -1010,7 +1144,7 @@ function confirmSheet(r, thumb){
     + (conf ? '<div class="sub">Read from ' + esc(r.how) + '. Correct anything that is wrong.</div>'
             : '<div class="warnbox" style="margin-top:10px">Could not find a total on this slip. Type the amount in.</div>')
     + '<img class="shot" style="margin-top:12px" src="'+url+'">'
-    + '<label>Amount (R)</label><input id="cAmt" type="number" inputmode="decimal" step="0.01" value="'+(r.total??'')+'">'
+    + '<label>Amount (R)</label><input id="cAmt" type="number" inputmode="decimal" step="0.01" value="'+(r.total??'')+'"'+(conf?'':' autofocus')+'>'
     + '<label>Where</label><input id="cNote" value="'+esc(r.merchant)+'">'
     + '<label>Category</label><select id="cCat">'+S.cats.map(x=>'<option'+(x.n===r.cat?' selected':'')+'>'+esc(x.n)+'</option>').join('')+'</select>'
     + '<label>Date</label><input id="cDate" type="date" value="'+r.date+'">'
@@ -1134,8 +1268,23 @@ function dl(blob, name){
 document.getElementById('impJson').onchange = e =>{
   const f = e.target.files[0]; if(!f) return;
   const r = new FileReader();
-  r.onload = () =>{ try{ S = Object.assign(structuredClone(DEFAULTS), JSON.parse(r.result)); save(); render(); alert('Restored.'); }
-                    catch(err){ alert('That file could not be read.'); } };
+  r.onload = () =>{
+    let d;
+    try{ d = JSON.parse(r.result); }
+    catch(err){ return alert('That file could not be read as JSON.'); }
+    const keepTx = S.tx || [];
+    S = Object.assign(structuredClone(DEFAULTS), d);
+    /* A setup file carries settings but no history — never wipe transactions you already have. */
+    if((!d.tx || !d.tx.length) && keepTx.length) S.tx = keepTx;
+    save();
+    const n = recategorise({silent:true});
+    alert('Restored.\n\n'
+      + (S.rules||[]).length + ' merchant rule(s) loaded\n'
+      + (S.shortcuts||[]).length + ' shortcut(s)\n'
+      + S.cats.length + ' categories\n'
+      + S.tx.length + ' transactions kept\n'
+      + n + ' recategorised');
+  };
   r.readAsText(f);
 };
 async function purgePhotos(){
