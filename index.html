@@ -224,7 +224,19 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 <!-- ================= BUDGET ================= -->
 <section class="tab" id="t-budget">
   <h1>Budget</h1>
-  <div class="sub">Targets set from your verified Mar&ndash;Jul 2026 actuals.</div>
+  <div class="sub">Income, pay day and category targets.</div>
+
+  <div class="card" id="setupCard">
+    <div class="row" style="margin-bottom:10px">
+      <div style="font-weight:700">Load your setup</div>
+      <div class="mini" id="setupState"></div>
+    </div>
+    <button class="b" onclick="pasteSetup()">Paste setup text</button>
+    <div style="height:8px"></div>
+    <button class="b g" onclick="document.getElementById('impJson').click()">Choose a setup file</button>
+    <div class="mini" style="margin-top:9px">Loads your income, pay day, targets, shortcuts and merchant rules.
+    Pasting is easier on a phone &mdash; email the file to yourself, open it, copy all the text, then tap Paste.</div>
+  </div>
 
   <div class="card">
     <label>Monthly income (R)</label>
@@ -262,7 +274,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <button class="b g" onclick="exportData()">Export backup (JSON)</button>
     <div style="height:8px"></div>
     <button class="b g" onclick="document.getElementById('impJson').click()">Restore from backup</button>
-    <input type="file" id="impJson" accept="application/json" style="display:none">
+    <input type="file" id="impJson" accept=".json,application/json,text/plain,*/*" style="display:none">
     <div style="height:8px"></div>
     <button class="b g" onclick="exportCsv()">Export transactions (CSV)</button>
     <div style="height:8px"></div>
@@ -998,6 +1010,13 @@ async function storeInfo(){
     q = ' · using ' + (e.usage/1048576).toFixed(1) + ' MB of ' + (e.quota/1048576).toFixed(0) + ' MB available';
   }}catch(e){}
   el.textContent = S.tx.length + ' transactions · ' + shots + ' slip photos' + q;
+  const sc = document.getElementById('setupState'), card = document.getElementById('setupCard');
+  if(sc){
+    const n = (S.rules||[]).length;
+    sc.textContent = n ? n + ' rules loaded' : 'not loaded yet';
+    sc.className = 'mini ' + (n ? 'ok' : 'wn');
+    card.style.borderColor = n ? 'var(--line)' : 'var(--warn)';
+  }
   const ui = document.getElementById('uncInfo');
   if(ui){
     const u = S.tx.filter(t=>!t.mt && t.c==='Uncategorised');
@@ -1272,21 +1291,48 @@ document.getElementById('impJson').onchange = e =>{
     let d;
     try{ d = JSON.parse(r.result); }
     catch(err){ return alert('That file could not be read as JSON.'); }
-    const keepTx = S.tx || [];
-    S = Object.assign(structuredClone(DEFAULTS), d);
-    /* A setup file carries settings but no history — never wipe transactions you already have. */
-    if((!d.tx || !d.tx.length) && keepTx.length) S.tx = keepTx;
-    save();
-    const n = recategorise({silent:true});
-    alert('Restored.\n\n'
-      + (S.rules||[]).length + ' merchant rule(s) loaded\n'
-      + (S.shortcuts||[]).length + ' shortcut(s)\n'
-      + S.cats.length + ' categories\n'
-      + S.tx.length + ' transactions kept\n'
-      + n + ' recategorised');
+    applySetup(d);
   };
   r.readAsText(f);
 };
+function pasteSetup(){
+  openSheet(
+      '<div class="row"><h1>Paste setup</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
+    + '<div class="sub">Paste the whole contents of your setup file below, then tap Load.</div>'
+    + '<label>Setup text (JSON)</label>'
+    + '<textarea id="pasteBox" rows="9" placeholder=\'paste the whole file here\' style="font-family:ui-monospace,monospace;font-size:13px"></textarea>'
+    + '<div style="height:12px"></div><button class="b" onclick="loadPasted()">Load setup</button>'
+    + '<div class="mini" style="margin-top:9px">Your existing transactions are kept. Only settings are replaced.</div>');
+  setTimeout(()=>{ const b=document.getElementById('pasteBox'); if(b) b.focus(); }, 120);
+}
+function loadPasted(){
+  const raw = (document.getElementById('pasteBox')||{}).value || '';
+  if(!raw.trim()) return alert('Paste the setup text first.');
+  let d;
+  try{ d = JSON.parse(raw); }
+  catch(err){ return alert('That is not valid setup text.\n\nMake sure you copied the whole file, starting with { and ending with }.'); }
+  applySetup(d);
+  closeSheet();
+}
+
+/* Shared by both the file picker and the paste box. */
+function applySetup(d){
+  if(!d || typeof d !== 'object') return alert('That setup could not be read.');
+  const keepTx = S.tx || [];
+  S = Object.assign(structuredClone(DEFAULTS), d);
+  /* A setup file carries settings but no history — never wipe transactions you already have. */
+  if((!d.tx || !d.tx.length) && keepTx.length) S.tx = keepTx;
+  save();
+  const n = recategorise({silent:true});
+  alert('Setup loaded.\n\n'
+    + (S.rules||[]).length + ' merchant rule(s)\n'
+    + (S.shortcuts||[]).length + ' shortcut(s)\n'
+    + S.cats.length + ' categories\n'
+    + S.tx.length + ' transactions kept\n'
+    + n + ' recategorised');
+  go('today');
+}
+
 async function purgePhotos(){
   const cut = iso(new Date(Date.now() - 90*86400000));
   const old = S.tx.filter(t => t.photo && t.d < cut);
