@@ -874,7 +874,7 @@ function render(){
   /* Weekly envelopes: divide what is left across the remaining weeks, then across
      the days left in this week only. Stops the whole month being spent in week one. */
   let weekInfo = null;
-  if(S.weekly){
+  if(S.weekly && cycleOffset === 0){
     const wN = weeksIn(c), wi = currentWeekIdx(c), w = weekWindow(c, wi);
     const wTx = tx.filter(t=>{ const d=new Date(t.d+'T12:00:00'); return d>=w.s && d<=new Date(w.e.getFullYear(),w.e.getMonth(),w.e.getDate(),23,59); });
     const wSpent = wTx.reduce((a,t)=>a+t.a,0);
@@ -951,6 +951,29 @@ function render(){
           '<tr><td>' + esc(r.name) + '<div class="tag">' + esc(r.cat) + ' &middot; usually around the ' + r.day + 'th</div></td>'
         + '<td class="r">' + R2(r.amount) + '</td></tr>').join('') + '</table></div>';
     document.getElementById('alerts').innerHTML = alertHtml;
+  }
+
+  if(S.weekly && cycleOffset !== 0 && tx.length){
+    /* closed period: an envelope is meaningless, so show how the weeks actually went */
+    const wN = weeksIn(c), rows = [];
+    for(let i=0;i<wN;i++){
+      const w = weekWindow(c,i);
+      const end = new Date(w.e.getFullYear(),w.e.getMonth(),w.e.getDate(),23,59);
+      const sp = tx.filter(t=>{ const d=new Date(t.d+'T12:00:00'); return d>=w.s && d<=end; })
+                   .reduce((a,t)=>a+t.a,0);
+      rows.push({i, sp, from:fmtD(w.s), to:fmtD(w.e)});
+    }
+    const mx = Math.max(1, ...rows.map(r=>r.sp));
+    const target = budTot / wN;
+    document.getElementById('alerts').innerHTML = alertHtml
+      + '<div class="card"><div class="row"><div class="mini">Week by week</div>'
+      + '<div class="mini">even pace would be ' + R(target) + '/week</div></div>'
+      + rows.map(r=>'<div style="margin-top:9px"><div class="row">'
+          + '<div class="mini">Week ' + (r.i+1) + ' · ' + r.from + '–' + r.to + '</div>'
+          + '<div class="mono" style="font-weight:600;font-size:13px">' + R(r.sp) + '</div></div>'
+          + '<div class="bar"><i style="width:' + (r.sp/mx*100) + '%;background:'
+          + (r.sp>target*1.25?'var(--bad)':r.sp>target?'var(--warn)':'var(--acc)') + '"></i></div></div>').join('')
+      + '</div>';
   }
 
   if(weekInfo){
