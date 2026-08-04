@@ -144,6 +144,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <div class="row" style="margin-top:8px"><div class="mini" id="pctLbl"></div><div class="mini" id="leftLbl"></div></div>
   </div>
 
+  <div class="card" id="dailyLine" style="display:none"></div>
   <div id="alerts"></div>
 
   <h2>Categories</h2>
@@ -208,10 +209,16 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   <div style="height:14px"></div>
   <div class="drop" id="drop">
     <div style="font-size:32px">&#128196;</div>
-    <div style="margin-top:8px;font-weight:600">Tap to choose a PDF</div>
-    <div class="mini" style="margin-top:4px">FNB Easy / Cheque statement</div>
+    <div style="margin-top:8px;font-weight:600">Tap to choose a statement</div>
+    <div class="mini" style="margin-top:4px">FNB PDF, or a CSV from any of the big five</div>
     <input type="file" id="file" accept="application/pdf" style="display:none">
   </div>
+  <div style="height:8px"></div>
+  <button class="b g" onclick="document.getElementById('csvIn').click()">Import a CSV instead</button>
+  <input type="file" id="csvIn" accept=".csv,.txt,text/csv,text/plain" style="display:none">
+  <div class="mini" style="margin-top:9px">Capitec · FNB · Standard Bank · Absa · Nedbank.
+  The file is read in your phone's memory and discarded the moment it is parsed &mdash;
+  it is never uploaded and never written to storage.</div>
   <div class="msg" id="impMsg"></div>
   <div id="impResult"></div>
   </div>
@@ -236,6 +243,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <button data-v="merch">Merchants</button>
     <button data-v="rec">Recurring</button>
     <button data-v="save">Savings</button>
+    <button data-v="house">Household</button>
   </div>
   <div id="insBody"></div>
   <div style="height:20px"></div>
@@ -270,6 +278,12 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
       <button id="paceM" onclick="setWeekly(false)">One monthly pot</button>
       <button id="paceW" onclick="setWeekly(true)">Weekly envelopes</button>
     </div>
+    <label>Budgeting method</label>
+    <div class="seg" style="margin:0">
+      <button id="mFlex" onclick="setMethod('flexible')">Track as I go</button>
+      <button id="mZero" onclick="setMethod('zero')">Zero-based</button>
+    </div>
+    <div id="zeroBox"></div>
     <div class="row" style="margin-top:14px">
       <div><div class="mini">Budgeted</div><div class="mono" style="font-size:19px;font-weight:700" id="bSum">R0</div></div>
       <div style="text-align:right"><div class="mini">Left to save</div><div class="mono ok" style="font-size:19px;font-weight:700" id="bSave">R0</div></div>
@@ -287,10 +301,106 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <button class="b g" onclick="addCat()">Add category</button>
   </div>
 
+  <h2>Account</h2>
+  <div class="card" id="authCard">
+    <div class="row" style="margin-bottom:8px">
+      <div style="font-weight:700">Sign in</div>
+      <div class="mini" id="authStatus">signed out</div>
+    </div>
+    <div class="mini" style="margin-bottom:10px">Only needed if you want to sync between devices or share
+    with someone. The app works fully without an account &mdash; and this is <b>never</b> a bank login.</div>
+    <div id="authForm">
+      <label>Email</label><input id="auEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <label>Password</label><input id="auPass" type="password" autocomplete="current-password" placeholder="at least 6 characters">
+      <div style="height:12px"></div>
+      <button class="b" onclick="doSignIn()">Sign in</button>
+      <div style="height:8px"></div>
+      <button class="b g" onclick="doSignUp()">Create an account</button>
+    </div>
+    <div id="authOut" style="display:none">
+      <button class="b g" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <h2>Lock this device</h2>
+  <div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <div style="font-weight:700">App lock</div>
+      <div class="mini" id="lockState"></div>
+    </div>
+    <div class="mini" style="margin-bottom:10px">Asks for a PIN or passphrase when the app opens.
+    It is a gate on this device, not encryption of the stored data &mdash; it stops someone picking up
+    your phone and reading your finances, but it is not protection against a determined attacker
+    with the handset.</div>
+    <button class="b" id="lockBtn" onclick="lockCfg.on ? clearLock() : setLock()"></button>
+  </div>
+
+  <h2>Sync across devices</h2>
+  <div class="card" id="syncCard">
+    <div class="row" style="margin-bottom:8px">
+      <div style="font-weight:700">Encrypted sync</div>
+      <div class="mini" id="syncStatus">off</div>
+    </div>
+    <div class="mini" style="margin-bottom:10px">Your data is encrypted on this phone before it leaves.
+    The server stores unreadable ciphertext &mdash; without your passphrase nobody, including whoever runs
+    the server, can decrypt it. Slip photos never sync; they stay on the device.</div>
+    <label>Supabase project URL</label>
+    <input id="syUrl" placeholder="https://xxxx.supabase.co">
+    <label>Supabase anon key</label>
+    <input id="syKey" placeholder="paste the anon public key">
+    <label>Shared passphrase</label>
+    <input id="syPass" type="password" placeholder="both devices must use the same one">
+    <label>This device is called</label>
+    <input id="syDev" placeholder="my phone">
+    <div class="row" style="margin-top:12px">
+      <label style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--tx)">
+        <input type="checkbox" id="syAuto" style="width:20px;height:20px"> Sync automatically
+      </label>
+    </div>
+    <div style="height:12px"></div>
+    <button class="b" onclick="saveSyncCfg()">Save and sync now</button>
+    <div style="height:8px"></div>
+    <button class="b g" onclick="syncNow()">Sync now</button>
+    <div style="height:8px"></div>
+    <button class="b g" onclick="showSyncSql()">Show the SQL to run once</button>
+    <div style="height:8px"></div>
+    <button class="b d" onclick="disconnectSync()">Disconnect</button>
+    <div class="mini" style="margin-top:10px">Lose the passphrase and the synced copy is unrecoverable.
+    That is the point of it, but write it down somewhere safe.</div>
+  </div>
+
+  <h2>When money lands</h2>
+  <div class="card">
+    <div class="mini" style="margin-bottom:10px">Decide now what happens to a bonus, a refund or
+    any unusual lump sum &mdash; so the decision is already made when it arrives.</div>
+    <label>Treat anything above (R)</label>
+    <input id="wfThresh" type="number" inputmode="decimal" onchange="setWindfall()">
+    <label>Straight to savings (%)</label>
+    <input id="wfPct" type="number" inputmode="decimal" min="0" max="100" onchange="setWindfall()">
+    <div class="mini" id="wfNote" style="margin-top:8px"></div>
+  </div>
+
+  <h2>Your data</h2>
+  <div class="card">
+    <div style="font-weight:700;margin-bottom:8px">&#128274; On this device only</div>
+    <div class="mini" style="line-height:1.6">
+      &bull; <b>No bank login, ever.</b> At any tier. This app cannot see your accounts and never asks to.<br>
+      &bull; <b>Nothing is uploaded.</b> Statements are parsed in your phone's memory and the file is
+      discarded the moment it is read. Slip photos are stored in your browser, not on a server.<br>
+      &bull; <b>No account, no sign-up, no analytics.</b> There is no server to hold your data,
+      which is also why sharing works by sending a file rather than syncing.<br>
+      &bull; <b>You can take it with you.</b> Export a full backup or a plain CSV at any time.<br>
+      &bull; <b>The trade-off:</b> because it lives only here, losing this phone loses the data.
+      Back it up.
+    </div>
+  </div>
+
   <h2>Categorisation</h2>
   <div class="card">
     <div class="mini" id="uncInfo" style="margin-bottom:10px"></div>
     <button class="b g" onclick="recategorise()">Recategorise all transactions</button>
+    <div style="height:8px"></div>
+    <button class="b" id="queueBtn" onclick="catQueue(0)"></button>
     <div class="mini" style="margin-top:8px">Re-applies your merchant rules to everything already imported.
     Run this after restoring a setup file or adding rules.</div>
   </div>
@@ -325,6 +435,20 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   <button data-t="setup"><div>&#9636;</div>Setup</button>
 </nav>
 
+<div id="lockScreen" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);
+     align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:340px;width:100%;text-align:center">
+    <div style="font-size:44px">&#128274;</div>
+    <h1 style="margin-top:10px">Budget</h1>
+    <div class="sub" style="margin-bottom:18px">Enter your PIN or passphrase</div>
+    <input id="lockInput" type="password" inputmode="numeric" style="text-align:center;font-size:20px"
+           onkeydown="if(event.key==='Enter')tryUnlock()">
+    <div class="mini bd" id="lockMsg" style="margin-top:8px;min-height:16px"></div>
+    <div style="height:12px"></div>
+    <button class="b" onclick="tryUnlock()">Unlock</button>
+  </div>
+</div>
+
 <div class="sheet" id="sheet"><div>
   <div class="grab"></div>
   <div id="sheetBody"></div>
@@ -348,6 +472,15 @@ const DEFAULTS = {
   income: 0,
   cycleDay: 1,                 /* day of month you get paid */
   weekly: false,               /* weekly envelopes instead of one monthly pot */
+  method: 'flexible',          /* 'flexible' | 'zero'  (zero-based envelopes) */
+  memory: {},                  /* merchant -> {c, n}  learned from your corrections */
+  members: [],                 /* household members for splitting */
+  splits: {},                  /* txId -> { memberId: amount } */
+  achievements: [],            /* milestones already celebrated */
+  windfall: null,              /* {threshold, rules:[{c,pct}]} */
+  autoWipe: true,              /* discard the statement file after parsing */
+  deleted: [],                 /* tombstones so a delete syncs instead of resurrecting */
+  syncedAt: 0,                 /* when settings last changed, for conflict resolution */
   savingsGoal: 0,              /* R per cycle you intend to put away */
   flows: [],                   /* savings / income movements pulled from statements */
   setupDone: false,
@@ -809,9 +942,29 @@ function flowKind(desc, isCr){
   return null;
 }
 
+/* ---------- merchant memory ----------
+   Every time you categorise something by hand we remember the merchant.
+   Two sightings and it starts answering for itself, so "Vodacom" only ever
+   has to be taught once. */
+function remember(note, cat){
+  if(!note || !cat || cat === 'Uncategorised') return;
+  const k = merchantOf(note).toLowerCase();
+  if(!k || k === '(bank fee)') return;
+  S.memory = S.memory || {};
+  const prev = S.memory[k];
+  S.memory[k] = (prev && prev.c === cat) ? {c:cat, n:prev.n+1} : {c:cat, n:1};
+}
+function recall(note){
+  const k = merchantOf(String(note||'')).toLowerCase();
+  const hit = (S.memory||{})[k];
+  return hit ? hit.c : null;
+}
+
 function classify(desc){
   const d = String(desc||'').trim();
   if(d === '') return 'Bank fees';                /* unlabelled per-transaction fees */
+  const learned = recall(d);                      /* what you taught it wins */
+  if(learned) return learned;
   /* your own rules win over the built-in ones */
   const ur = (typeof S !== 'undefined' && S && S.rules) || [];
   for(const r of ur){
@@ -892,6 +1045,521 @@ async function parsePdf(file){
     out.push({d, a:t.a, desc:t.desc, c:classify(t.desc)});
   }
   return {tx:out, skipped, header};
+}
+
+/* ============================================================
+   Device lock
+
+   A gate on this device, not encryption at rest — it stops someone picking up
+   your unlocked phone and reading your finances, but a determined person with
+   the handset and technical skill could still reach the underlying storage.
+   Said plainly rather than overpromised.
+   ============================================================ */
+const LOCK_KEY = 'wnLock_v1';
+let lockCfg = (()=>{ try{ return JSON.parse(localStorage.getItem(LOCK_KEY)) || {}; }catch(e){ return {}; } })();
+function saveLock(){ try{ localStorage.setItem(LOCK_KEY, JSON.stringify(lockCfg)); }catch(e){} }
+
+async function pinHash(pin){
+  const enc = new TextEncoder();
+  const salt = lockCfg.salt || (lockCfg.salt = [...crypto.getRandomValues(new Uint8Array(8))].map(x=>x.toString(16)).join(''));
+  const base = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    {name:'PBKDF2', salt:enc.encode('lock:'+salt), iterations:150000, hash:'SHA-256'}, base, 256);
+  return [...new Uint8Array(bits)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function setLock(){
+  const a = prompt('Choose a PIN or passphrase (at least 4 characters):');
+  if(a == null) return;
+  if(a.length < 4) return alert('Too short.');
+  const b = prompt('Enter it again to confirm:');
+  if(a !== b) return alert('They did not match. Nothing changed.');
+  lockCfg = {salt:null};
+  lockCfg.hash = await pinHash(a);
+  lockCfg.on = true; saveLock(); render();
+  alert('Lock is on. You will be asked for this when you open the app.\n\nThere is no way to reset it — if you forget it you will need to erase and restore from a backup.');
+}
+function clearLock(){
+  if(!confirm('Turn the lock off? Anyone with this phone will be able to open the app.')) return;
+  lockCfg = {}; saveLock(); render();
+}
+function showLock(){
+  const el = document.getElementById('lockScreen');
+  if(el) el.style.display = 'flex';
+  document.getElementById('lockInput').value = '';
+  setTimeout(()=>document.getElementById('lockInput').focus(), 150);
+}
+async function tryUnlock(){
+  const v = document.getElementById('lockInput').value;
+  const msg = document.getElementById('lockMsg');
+  if(!v) return;
+  const h = await pinHash(v);
+  if(h === lockCfg.hash){
+    document.getElementById('lockScreen').style.display = 'none';
+    lockCfg.failed = 0; saveLock();
+  } else {
+    lockCfg.failed = (lockCfg.failed||0) + 1; saveLock();
+    msg.textContent = 'Not right. ' + (lockCfg.failed > 4 ? 'Still no reset — restore from a backup if you are stuck.' : '');
+    document.getElementById('lockInput').value = '';
+  }
+}
+
+/* ============================================================
+   Encrypted sync (Supabase)
+
+   The server never sees anything readable. Your passphrase derives an
+   AES-256 key in the browser; only ciphertext is sent. The row id is a
+   hash of the passphrase, so without it nobody can even find your row.
+   Supabase credentials live in this browser, never in the source.
+   ============================================================ */
+const SYNC_KEY = 'wnSync_v1';
+const APP_SALT = 'budget-app/e2e/v1';
+let syncCfg = loadSync(), _ck = null, _pollTimer = null, syncBusy = false;
+
+function loadSync(){
+  try{ return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; }catch(e){ return {}; }
+}
+function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg)); }catch(e){} }
+
+const _enc = new TextEncoder(), _dec = new TextDecoder();
+const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b)));
+const unb64 = t => Uint8Array.from(atob(t), c=>c.charCodeAt(0));
+const hex = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+
+async function cryptoKey(pass){
+  const base = await crypto.subtle.importKey('raw', _enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt:_enc.encode(APP_SALT), iterations:250000, hash:'SHA-256'},
+    base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function roomId(pass){
+  return hex(await crypto.subtle.digest('SHA-256', _enc.encode(APP_SALT+':room:'+pass))).slice(0,40);
+}
+async function seal(obj, key){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, _enc.encode(JSON.stringify(obj)));
+  return b64(iv) + '.' + b64(ct);
+}
+async function unseal(txt, key){
+  const [i,c] = String(txt).split('.');
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(i)}, key, unb64(c));
+  return JSON.parse(_dec.decode(pt));
+}
+
+/* ---------- Supabase Auth ----------
+   A real account means row-level security can tie the sync row to your user id,
+   instead of trusting that nobody guesses it. The payload stays end-to-end
+   encrypted regardless, so even a Supabase admin sees only ciphertext. */
+async function authFetch(path, opts){
+  const url = syncCfg.url.replace(/\/+$/,'') + path;
+  const r = await fetch(url, {...opts, headers:{apikey:syncCfg.key, 'Content-Type':'application/json', ...(opts.headers||{})}});
+  const body = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(body.msg || body.error_description || body.message || ('Request failed (' + r.status + ')'));
+  return body;
+}
+async function signUp(email, password){
+  const d = await authFetch('/auth/v1/signup', {method:'POST', body:JSON.stringify({email, password})});
+  if(d.access_token) storeSession(d);
+  return d;
+}
+async function signIn(email, password){
+  const d = await authFetch('/auth/v1/token?grant_type=password', {method:'POST', body:JSON.stringify({email, password})});
+  storeSession(d);
+  return d;
+}
+function storeSession(d){
+  syncCfg.token = d.access_token;
+  syncCfg.refresh = d.refresh_token;
+  syncCfg.userId = d.user && d.user.id;
+  syncCfg.email = d.user && d.user.email;
+  syncCfg.expires = Date.now() + ((d.expires_in || 3600) * 1000) - 60000;
+  saveSync();
+}
+async function ensureToken(){
+  if(!syncCfg.token) throw new Error('Sign in first.');
+  if(Date.now() < (syncCfg.expires||0)) return syncCfg.token;
+  const d = await authFetch('/auth/v1/token?grant_type=refresh_token',
+    {method:'POST', body:JSON.stringify({refresh_token: syncCfg.refresh})});
+  storeSession(d);
+  return syncCfg.token;
+}
+async function signOut(){
+  try{ if(syncCfg.token) await authFetch('/auth/v1/logout', {method:'POST',
+    headers:{Authorization:'Bearer '+syncCfg.token}}); }catch(e){}
+  delete syncCfg.token; delete syncCfg.refresh; delete syncCfg.userId;
+  delete syncCfg.email; delete syncCfg.expires;
+  saveSync(); clearInterval(_pollTimer); render();
+}
+/* Joining a household is idempotent — knowing the passphrase is what lets you in. */
+async function joinHousehold(id, token){
+  await fetch(syncCfg.url.replace(/\/+$/,'') + '/rest/v1/household_members',
+    {method:'POST', headers:{apikey:syncCfg.key, Authorization:'Bearer '+token,
+      'Content-Type':'application/json', Prefer:'resolution=ignore-duplicates,return=minimal'},
+     body:JSON.stringify([{household:id}])}).catch(()=>{});
+}
+
+/* ---------- merge ----------
+   Transactions merge by id with the newest edit winning, so two phones adding
+   different spends both survive. Deletions carry tombstones, otherwise a row
+   deleted on one device is simply re-sent by the other. Settings are
+   last-write-wins on their own timestamp. */
+function mergeState(local, remote){
+  if(!remote) return local;
+  const out = {...local};
+  const tomb = new Set([...(local.deleted||[]), ...(remote.deleted||[])]);
+  const byId = new Map();
+  for(const t of (remote.tx||[])) byId.set(String(t.id), t);
+  for(const t of (local.tx||[])){
+    const k = String(t.id), other = byId.get(k);
+    if(!other){ byId.set(k, t); continue; }
+    byId.set(k, (t.mod||0) >= (other.mod||0) ? t : other);
+  }
+  out.tx = [...byId.values()].filter(t => !tomb.has(String(t.id)));
+  out.deleted = [...tomb].slice(-2000);
+
+  const fseen = new Set();
+  out.flows = [...(local.flows||[]), ...(remote.flows||[])].filter(f=>{
+    const k = f.d+'|'+f.a+'|'+f.note+'|'+f.dir;
+    if(fseen.has(k)) return false; fseen.add(k); return true;
+  });
+
+  /* whoever touched settings last owns them */
+  const remoteNewer = (remote.syncedAt||0) > (local.syncedAt||0);
+  for(const k of ['income','cycleDay','weekly','method','savingsGoal','cats','rules','shortcuts','windfall','members','memory']){
+    if(remoteNewer && remote[k] !== undefined) out[k] = remote[k];
+  }
+  out.splits = {...(remote.splits||{}), ...(local.splits||{})};
+  out.achievements = [...new Set([...(local.achievements||[]), ...(remote.achievements||[])])];
+  out.syncedAt = Math.max(local.syncedAt||0, remote.syncedAt||0);
+  return out;
+}
+
+/* Photos are deliberately excluded — they are large and stay on the device. */
+function syncPayload(){
+  const {flows, tx, cats, rules, shortcuts, members, splits, memory,
+         achievements, windfall, income, cycleDay, weekly, method, savingsGoal,
+         deleted, syncedAt} = S;
+  return {flows, tx:(tx||[]).map(({photo, ...rest})=>rest), cats, rules, shortcuts, members,
+          splits, memory, achievements, windfall, income, cycleDay, weekly, method,
+          savingsGoal, deleted, syncedAt};
+}
+
+async function syncNow(silent){
+  if(!syncCfg.url || !syncCfg.key || !syncCfg.pass){ if(!silent) alert('Add your Supabase details under Setup → Sync first.'); return; }
+  if(!syncCfg.token){ if(!silent) alert('Sign in first — sync needs an account so only you can reach your data.'); return; }
+  if(syncBusy) return;
+  syncBusy = true;
+  setSyncStatus('Syncing…');
+  try{
+    const token = await ensureToken();
+    _ck = _ck || await cryptoKey(syncCfg.pass);
+    const id = await roomId(syncCfg.pass);
+    await joinHousehold(id, token);
+    const base = syncCfg.url.replace(/\/+$/,'') + '/rest/v1/budget_sync';
+    const h = {apikey:syncCfg.key, Authorization:'Bearer '+token, 'Content-Type':'application/json'};
+
+    /* pull */
+    let remote = null;
+    const got = await fetch(base+'?household=eq.'+id+'&select=payload,updated_at', {headers:h});
+    if(!got.ok) throw new Error('Pull failed (' + got.status + '). Check the URL and key.');
+    const rows = await got.json();
+    if(rows.length){
+      try{ remote = await unseal(rows[0].payload, _ck); }
+      catch(e){ throw new Error('Could not decrypt. The passphrase does not match the one used on the other device.'); }
+    }
+
+    /* merge and push */
+    const merged = mergeState(syncPayload(), remote);
+    Object.assign(S, merged);
+    save();
+    const body = [{household:id, payload: await seal(syncPayload(), _ck),
+                   updated_at: new Date().toISOString(), device:(syncCfg.device || 'device')}];
+    const put = await fetch(base, {method:'POST',
+      headers:{...h, Prefer:'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify(body)});
+    if(!put.ok) throw new Error('Push failed (' + put.status + ').');
+
+    syncCfg.last = Date.now(); saveSync();
+    render();
+    setSyncStatus('Synced ' + new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}));
+    if(!silent) flash('impMsg','s','Sync complete.');
+  }catch(err){
+    console.warn(err);
+    setSyncStatus('Sync failed');
+    if(!silent) alert(err.message);
+  }finally{ syncBusy = false; }
+}
+function setSyncStatus(t){ const el=document.getElementById('syncStatus'); if(el) el.textContent = t; }
+function startPolling(){
+  clearInterval(_pollTimer);
+  if(syncCfg.auto && syncCfg.url) _pollTimer = setInterval(()=>{ if(document.visibilityState==='visible') syncNow(true); }, 20000);
+}
+
+/* ============================================================
+   11. Zero-based envelopes — every rand gets a job before it is spent
+   ============================================================ */
+function unallocated(){ return (S.income||0) - S.cats.reduce((a,c)=>a+c.t, 0); }
+function autoAllocate(){
+  /* Push whatever is unallocated into the savings goal, which is where it
+     belongs if you have not assigned it a job. */
+  const u = unallocated();
+  if(u <= 0) return alert(u<0 ? 'You have allocated ' + R(-u) + ' more than you earn. Reduce a category first.' : 'Every rand is already allocated.');
+  S.savingsGoal = (S.savingsGoal||0) + u;
+  save(); render();
+  alert(R(u) + ' moved to your savings goal. Every rand now has a job.');
+}
+
+/* ============================================================
+   12. Daily allowance — what today is actually worth
+   ============================================================ */
+function dailyAllowance(c, budTot, spent, fixedRem){
+  const msDay = 86400000, now = new Date();
+  const totalDays = Math.round((c.e - c.s)/msDay) + 1;
+  const dayN = Math.min(Math.max(1, Math.floor((now - c.s)/msDay) + 1), totalDays);
+  const daysLeft = Math.max(1, totalDays - dayN + 1);
+  const flex = budTot - fixedRem;
+  const perDayFlat = flex / totalDays;                 /* the even pace */
+  const left = budTot - spent - fixedRem;
+  return { totalDays, dayN, daysLeft, perDayFlat, perDayNow: left/daysLeft, left,
+           ahead: perDayFlat*dayN - (spent) };          /* + = ahead of pace */
+}
+
+/* ============================================================
+   13/14. Household members and expense splitting
+   Local-first: no server, so members are people you define on this device
+   and share with by exporting a file. Splitting maths is exact.
+   ============================================================ */
+function memberName(id){ const m=(S.members||[]).find(x=>x.id===id); return m?m.name:'Unknown'; }
+function splitOf(txId){ return (S.splits||{})[txId] || null; }
+function setSplit(txId, map){
+  S.splits = S.splits||{};
+  if(!map || !Object.keys(map).length) delete S.splits[txId]; else S.splits[txId]=map;
+  save();
+}
+/* Who owes whom: for each split transaction the payer fronted the money,
+   so everyone else owes the payer their share. */
+function balances(){
+  const bal = {};
+  (S.members||[]).forEach(m=> bal[m.id]=0);
+  for(const t of S.tx){
+    if(t.mt) continue;
+    const sp = splitOf(t.id);
+    if(!sp) continue;
+    const payer = t.payer || (S.members[0] && S.members[0].id);
+    if(!payer) continue;
+    for(const [mid, amt] of Object.entries(sp)){
+      if(mid === payer) continue;
+      bal[mid] = (bal[mid]||0) - amt;      /* they owe */
+      bal[payer] = (bal[payer]||0) + amt;  /* they are owed */
+    }
+  }
+  return bal;
+}
+/* Reduce the balances to the fewest payments that settle everyone up. */
+function settlements(){
+  const bal = balances();
+  const owe = Object.entries(bal).filter(([,v])=>v < -0.005).map(([k,v])=>({k, v:-v})).sort((a,b)=>b.v-a.v);
+  const due = Object.entries(bal).filter(([,v])=>v >  0.005).map(([k,v])=>({k, v})).sort((a,b)=>b.v-a.v);
+  const out = [];
+  let i=0, j=0;
+  while(i<owe.length && j<due.length){
+    const amt = Math.min(owe[i].v, due[j].v);
+    if(amt > 0.005) out.push({from:owe[i].k, to:due[j].k, a:+amt.toFixed(2)});
+    owe[i].v -= amt; due[j].v -= amt;
+    if(owe[i].v <= 0.005) i++;
+    if(due[j].v <= 0.005) j++;
+  }
+  return out;
+}
+
+/* ============================================================
+   15. Why this matters — plain-language context from YOUR numbers
+   ============================================================ */
+function whyItMatters(catName, monthlySpend){
+  const inc = S.income || 0;
+  const pct = inc ? monthlySpend/inc*100 : 0;
+  const yr  = monthlySpend*12;
+  const bits = [];
+  if(inc) bits.push(R(monthlySpend) + '/month is ' + pct.toFixed(0) + '% of what you earn.');
+  bits.push('Over a year that is ' + R(yr) + '.');
+  const rent = (S.cats.find(c=>/rent/i.test(c.n))||{}).t || 0;
+  if(rent && monthlySpend > 0 && catName !== 'Rent')
+    bits.push('That is ' + (monthlySpend/rent).toFixed(1) + '\u00d7 your rent.' .replace('1.0\u00d7','the same as'));
+  if(S.savingsGoal > 0 && monthlySpend > 0)
+    bits.push('Cutting it by a third would cover ' + Math.min(100, Math.round(monthlySpend/3/S.savingsGoal*100)) + '% of your monthly savings goal.');
+  return bits;
+}
+
+/* ============================================================
+   16. Milestones — noticed once, then left alone
+   ============================================================ */
+const MILESTONES = [
+  {id:'first-import',  test:()=> S.tx.length > 0,
+   title:'First statement imported', body:'You can now see where the money actually went.'},
+  {id:'all-categorised', test:()=> S.tx.length > 20 && !S.tx.some(t=>!t.mt && t.c==='Uncategorised'),
+   title:'Everything categorised', body:'Every transaction has a home. Your numbers can be trusted now.'},
+  {id:'first-slip',    test:()=> S.tx.some(t=>t.src==='slip'),
+   title:'First slip captured', body:'Catching spend as it happens is what makes the month-end reconcile.'},
+  {id:'under-budget',  test:()=> closedCycleUnderBudget() !== null,
+   title:'First month under budget', body:()=> 'You came in under by ' + R(closedCycleUnderBudget()) + '. That is the whole game.'},
+  {id:'saved-1000',    test:()=> netSaved() >= 1000,
+   title:'First R1 000 saved', body:()=> 'Net ' + R(netSaved()) + ' put away and kept there.'},
+  {id:'saved-10000',   test:()=> netSaved() >= 10000,
+   title:'R10 000 saved', body:()=> 'Net ' + R(netSaved()) + '. That is a real emergency buffer.'},
+  {id:'zero-based',    test:()=> S.method==='zero' && Math.abs(unallocated()) < 1 && S.income>0,
+   title:'Every rand allocated', body:'Zero-based budget balanced. Nothing is drifting.'}
+];
+function netSaved(){
+  const f = S.flows||[];
+  return f.filter(x=>x.dir==='out').reduce((a,x)=>a+x.a,0) - f.filter(x=>x.dir==='in').reduce((a,x)=>a+x.a,0);
+}
+function closedCycleUnderBudget(){
+  const budTot = S.cats.reduce((a,c)=>a+c.t,0);
+  if(!budTot) return null;
+  for(let o=-1; o>-13; o--){
+    const c = cycleAt(o);
+    const tx = S.tx.filter(t=>!t.mt && inCycle(t,c));
+    if(!tx.length) continue;
+    const sp = tx.reduce((a,t)=>a+t.a,0);
+    if(sp < budTot) return budTot - sp;
+  }
+  return null;
+}
+function checkMilestones(){
+  S.achievements = S.achievements||[];
+  for(const m of MILESTONES){
+    if(S.achievements.includes(m.id)) continue;
+    let ok=false; try{ ok = m.test(); }catch(e){}
+    if(!ok) continue;
+    S.achievements.push(m.id); save();
+    const body = typeof m.body === 'function' ? m.body() : m.body;
+    setTimeout(()=> openSheet(
+        '<div class="row"><h1>&#127881; ' + esc(m.title) + '</h1>'
+      + '<button class="b g sm" onclick="closeSheet()">Close</button></div>'
+      + '<div class="card" style="margin-top:12px;border-color:var(--acc)"><div>' + esc(body) + '</div></div>'), 400);
+    return;                       /* one at a time, never a pile-up */
+  }
+}
+
+/* ============================================================
+   17. Windfall rule — decided in the cold light of day
+   ============================================================ */
+function windfallCandidates(){
+  const w = S.windfall;
+  if(!w || !w.threshold) return [];
+  const seen = new Set(w.handled||[]);
+  return (S.flows||[]).filter(f=> f.dir==='in' && f.a >= w.threshold && !seen.has(f.id))
+    .concat((S.income ? [] : []));
+}
+function applyWindfall(id, amount){
+  const w = S.windfall; if(!w) return;
+  w.handled = w.handled||[]; w.handled.push(id);
+  save(); render();
+}
+
+/* ============================================================
+   CSV statement parsers — Capitec, FNB, Standard Bank, Absa, Nedbank
+   Every SA bank exports a different shape. Rather than guess per bank,
+   we sniff the header row for the columns we need, which also means an
+   unrecognised bank still works if its headers are sane.
+   ============================================================ */
+function csvSplit(line){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c === '"'){ if(q && line[i+1]==='"'){ cur+='"'; i++; } else q=!q; }
+    else if((c === ',' || c === ';' || c === '\t') && !q){ out.push(cur); cur=''; }
+    else cur+=c;
+  }
+  out.push(cur);
+  return out.map(x=>x.trim().replace(/^"|"$/g,''));
+}
+
+const CSV_COLS = {
+  date:   /^(date|transaction date|posting date|trans date|datum|value date|effective date)$/i,
+  desc:   /^(description|narrative|details|transaction description|reference|payee|memo|beneficiary)$/i,
+  amount: /^(amount|transaction amount|value|bedrag)$/i,
+  debit:  /^(debit|debits|money out|withdrawal|fees|paid out)$/i,
+  credit: /^(credit|credits|money in|deposit|paid in)$/i,
+  balance:/^(balance|running balance|closing balance|saldo)$/i
+};
+
+function csvNum(v){
+  if(v == null) return null;
+  let t = String(v).replace(/[R\s\u00a0]/g,'').replace(/[()]/g, m => m==='(' ? '-' : '');
+  if(/^-?\d{1,3}(\.\d{3})+,\d{2}$/.test(t)) t = t.replace(/\./g,'').replace(',','.');  /* 1.234,56 */
+  else t = t.replace(/,/g,'');                                                            /* 1,234.56 */
+  const n = parseFloat(t);
+  return isFinite(n) ? n : null;
+}
+function csvDate(v){
+  const t = String(v||'').trim();
+  let m;
+  if((m = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/.exec(t)))  return ymd(+m[1], +m[2], +m[3]);
+  if((m = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/.exec(t))) return ymd(+m[3], +m[2], +m[1]);
+  if((m = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})$/.exec(t))) return ymd(2000+ +m[3], +m[2], +m[1]);
+  if((m = /^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/.exec(t)) && MON[cap3(m[2])])
+    return ymd(+m[3], MON[cap3(m[2])], +m[1]);
+  if((m = /^(\d{1,2})\s+([A-Za-z]{3})/.exec(t)) && MON[cap3(m[2])])
+    return ymd(new Date().getFullYear(), MON[cap3(m[2])], +m[1]);
+  return null;
+}
+const cap3 = x => x.charAt(0).toUpperCase()+x.slice(1,3).toLowerCase();
+const ymd = (y,m,d) => (m>=1&&m<=12&&d>=1&&d<=31&&y>=2000&&y<=2100)
+  ? y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0') : null;
+
+function detectBank(text){
+  const t = text.slice(0, 4000).toLowerCase();
+  if(/capitec/.test(t))                       return 'Capitec';
+  if(/first national bank|\bfnb\b|firstrand/.test(t)) return 'FNB';
+  if(/standard bank|stanbic/.test(t))         return 'Standard Bank';
+  if(/\babsa\b/.test(t))                      return 'Absa';
+  if(/nedbank/.test(t))                       return 'Nedbank';
+  return null;
+}
+
+function parseCsv(text){
+  const rawLines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  const bank = detectBank(text);
+  /* Find the header row: the first row that gives us a date column and either
+     an amount column or a debit/credit pair. Banks pad the top with account blurb. */
+  let hdr = -1, map = null;
+  for(let i=0; i<Math.min(rawLines.length, 40); i++){
+    const cells = csvSplit(rawLines[i]);
+    if(cells.length < 2) continue;
+    const m = {};
+    cells.forEach((c,idx)=>{ for(const k in CSV_COLS) if(CSV_COLS[k].test(c) && m[k] === undefined) m[k] = idx; });
+    if(m.date !== undefined && (m.amount !== undefined || m.debit !== undefined || m.credit !== undefined)){
+      hdr = i; map = m; break;
+    }
+  }
+  if(hdr < 0) return {tx:[], skipped:[], bank, error:'Could not find a header row with a date and an amount column.'};
+
+  const tx = [], skipped = [];
+  for(let i=hdr+1; i<rawLines.length; i++){
+    const c = csvSplit(rawLines[i]);
+    if(c.length < 2) continue;
+    const d = csvDate(c[map.date]);
+    if(!d) continue;
+    const desc = (map.desc !== undefined ? c[map.desc] : '')
+      .replace(/\s+/g,' ').replace(/\b\d{6}\*\d{4}\b.*$/,'').trim();
+
+    let amt = null, isCr = false;
+    if(map.amount !== undefined){
+      const n = csvNum(c[map.amount]);
+      if(n == null) continue;
+      isCr = n > 0;                    /* SA convention: debits negative in a single column */
+      amt = Math.abs(n);
+    } else {
+      const dr = map.debit  !== undefined ? csvNum(c[map.debit])  : null;
+      const cr = map.credit !== undefined ? csvNum(c[map.credit]) : null;
+      if(dr != null && Math.abs(dr) > 0){ amt = Math.abs(dr); isCr = false; }
+      else if(cr != null && Math.abs(cr) > 0){ amt = Math.abs(cr); isCr = true; }
+      else continue;
+    }
+    if(!amt) continue;
+    if(isCr || SKIP.test(desc)) skipped.push({d, a:amt, desc, cr:isCr, kind:flowKind(desc, isCr)});
+    else tx.push({d, a:amt, desc, c:classify(desc)});
+  }
+  return {tx, skipped, bank, header:(bank||'Bank')+' CSV · '+tx.length+' transactions'};
 }
 
 /* ============================================================
@@ -1055,15 +1723,67 @@ function render(){
   const rec = [...active].sort((a,b)=> b.d.localeCompare(a.d) || String(b.id).localeCompare(String(a.id))).slice(0,25);
   document.getElementById('recent').innerHTML = rec.length
     ? rec.map(t=>'<tr onclick="editTx(&quot;'+t.id+'&quot;)" style="cursor:pointer"><td><div style="font-weight:600">'+esc(t.note||t.c)+'</div>'
-        +'<div class="tag'+(t.c==='Uncategorised'?' wn':t.src==='pdf'?' bl':'')+'">'+esc(t.c)+' &middot; '+t.d
-        +(t.src==='pdf'?' &middot; statement':t.photo?' &middot; slip':'')+'</div>'
-        +(t.rec?' <span class="tag ok">reconciled</span>':'')+'</td>'
+        +'<div class="tag'+(t.c==='Uncategorised'?' wn':t.src==='pdf'?' bl':'')+'">'+esc(t.c)+' &middot; '+t.d+'</div> '
+        +(t.rec ? '<span class="tag ok">matched</span>'
+                : t.src==='pdf' ? '<span class="tag wn">no receipt</span>'
+                : '<span class="tag bl">receipt only</span>')
+        +(t.items&&t.items.length?' <span class="tag">'+t.items.length+' items</span>':'')+'</td>'
         +'<td class="r">'+R2(t.a)+'<div class="mini" style="font-weight:400;color:var(--blue)">edit &rsaquo;</div></td></tr>').join('')
     : '<tr><td class="mini">Nothing logged yet. Snap a slip or import a statement.</td></tr>';
 
   document.getElementById('income').value   = S.income;
   document.getElementById('cycleDay').value = S.cycleDay;
   const sg = document.getElementById('savingsGoal'); if(sg) sg.value = S.savingsGoal || 0;
+  const mf=document.getElementById('mFlex'), mz=document.getElementById('mZero');
+  if(mf){ mf.classList.toggle('on', S.method!=='zero'); mz.classList.toggle('on', S.method==='zero'); }
+  const zb=document.getElementById('zeroBox');
+  if(zb){
+    if(S.method==='zero'){
+      const u=unallocated();
+      zb.innerHTML='<div class="card" style="margin-top:12px;border-color:'+(Math.abs(u)<1?'var(--acc)':'var(--warn)')+'">'
+        +'<div class="row"><div><div class="mini">Still to allocate</div>'
+        +'<div class="mono '+(Math.abs(u)<1?'ok':u<0?'bd':'wn')+'" style="font-size:23px;font-weight:700">'
+        +(u<0?'−':'')+R(Math.abs(u))+'</div></div>'
+        +'<button class="b" style="width:auto;padding:11px 14px" onclick="autoAllocate()">Assign rest</button></div>'
+        +'<div class="mini" style="margin-top:6px">'
+        +(Math.abs(u)<1 ? 'Every rand has a job.' : u>0 ? 'Give this money a purpose before the month starts.'
+          : 'You have allocated more than you earn — trim a category.')+'</div></div>';
+    } else zb.innerHTML='';
+  }
+  const as=document.getElementById('authStatus');
+  if(as){
+    as.textContent = syncCfg.token ? ('signed in as ' + (syncCfg.email||'you')) : 'signed out';
+    as.className = 'mini ' + (syncCfg.token ? 'ok' : '');
+    document.getElementById('authForm').style.display = syncCfg.token ? 'none' : '';
+    document.getElementById('authOut').style.display  = syncCfg.token ? '' : 'none';
+    document.getElementById('authCard').style.borderColor = syncCfg.token ? 'var(--acc)' : 'var(--line)';
+  }
+  const ls=document.getElementById('lockState'), lb=document.getElementById('lockBtn');
+  if(ls){ ls.textContent = lockCfg.on ? 'on' : 'off'; ls.className='mini '+(lockCfg.on?'ok':'');
+          lb.textContent = lockCfg.on ? 'Turn the lock off' : 'Set a PIN or passphrase';
+          lb.className = 'b ' + (lockCfg.on ? 'd' : ''); }
+  const sy=document.getElementById('syUrl');
+  if(sy){
+    sy.value=syncCfg.url||''; document.getElementById('syKey').value=syncCfg.key||'';
+    document.getElementById('syPass').value=syncCfg.pass||'';
+    document.getElementById('syDev').value=syncCfg.device||'';
+    document.getElementById('syAuto').checked=!!syncCfg.auto;
+    const st=document.getElementById('syncStatus');
+    if(st && !syncBusy) st.textContent = syncCfg.url
+      ? (syncCfg.last ? 'last synced ' + new Date(syncCfg.last).toLocaleString('en-ZA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'connected')
+      : 'off';
+    document.getElementById('syncCard').style.borderColor = syncCfg.url ? 'var(--acc)' : 'var(--line)';
+  }
+  const wt=document.getElementById('wfThresh'), wp=document.getElementById('wfPct');
+  if(wt){ wt.value=(S.windfall&&S.windfall.threshold)||''; wp.value=(S.windfall&&S.windfall.pct)||''; }
+  const wn=document.getElementById('wfNote');
+  if(wn) wn.textContent = S.windfall && S.windfall.threshold
+    ? 'Anything over ' + R(S.windfall.threshold) + ': ' + (S.windfall.pct||0) + '% goes straight to savings, the rest is yours to use.'
+    : 'No rule set. Windfalls tend to evaporate without one.';
+  const qb=document.getElementById('queueBtn');
+  if(qb){ const n=needsCategory().length;
+    qb.style.display = n ? '' : 'none';
+    qb.textContent = 'Categorise ' + n + ' unsorted transaction' + (n===1?'':'s'); }
   const pm = document.getElementById('paceM'), pw = document.getElementById('paceW');
   if(pm){ pm.classList.toggle('on', !S.weekly); pw.classList.toggle('on', !!S.weekly); }
   const sv = S.income - budTot;
@@ -1089,7 +1809,19 @@ function render(){
   const unrec = S.tx.filter(t => isLog(t) && !t.rec).length;
   document.getElementById('matchDot').classList.toggle('on', unrec > 0 && S.tx.some(isStmt));
 
+  /* 12. daily allowance, stated plainly */
+  const da = dailyAllowance(c, budTot, spent, fixedRem);
+  const dEl = document.getElementById('dailyLine');
+  if(dEl){
+    dEl.style.display = isNow ? '' : 'none';
+    if(isNow) dEl.innerHTML =
+        '<div class="row"><div class="mini">Even pace</div><div class="mini">'+R(da.perDayFlat)+'/day</div></div>'
+      + '<div class="row"><div class="mini">Your pace now</div><div class="mini '+(da.ahead>=0?'ok':'bd')+'">'
+      + (da.ahead>=0 ? R(da.ahead)+' ahead' : R(-da.ahead)+' behind')+'</div></div>';
+  }
+
   renderShortcuts(); renderInsights(); renderMatch(); storeInfo();
+  checkMilestones();
 }
 
 function latestCycleWithData(){
@@ -1132,7 +1864,111 @@ function renderInsights(){
   if(insView==='merch')   return void(el.innerHTML = viewMerchants(active));
   if(insView==='rec')     return void(el.innerHTML = viewRecurring());
   if(insView==='save')    return void(el.innerHTML = viewSavings());
+  if(insView==='house')   return void(el.innerHTML = viewHousehold());
 }
+
+/* ---------- 13/14. household + who owes whom ---------- */
+function viewHousehold(){
+  const ms = S.members||[];
+  let h = '<div class="infobox">Everything here stays on this device. To share a budget, '
+    + 'export a backup from Setup and send it to the other person &mdash; there is no server, '
+    + 'no account and no bank login involved.</div>';
+  h += '<div class="card"><label style="margin-top:0">Add someone</label>'
+    + '<div class="row"><input id="mName" placeholder="Name">'
+    + '<button class="b" style="width:auto;padding:12px 16px" onclick="addMember()">Add</button></div></div>';
+  if(!ms.length) return h + '<div class="card mini">No one added yet. Add yourself and whoever you split with.</div>';
+
+  h += '<h2>People</h2><div class="card">' + ms.map((m,i)=>
+      '<div class="cat"><div class="row"><div class="n">'+esc(m.name)+(i===0?' <span class="tag">pays by default</span>':'')+'</div>'
+    + '<button class="b d sm" onclick="delMember(&quot;'+m.id+'&quot;)">&times;</button></div></div>').join('') + '</div>';
+
+  const setl = settlements();
+  const splitCount = Object.keys(S.splits||{}).length;
+  h += '<h2>Who owes whom</h2><div class="card">'
+    + (setl.length
+        ? '<table>' + setl.map(x=>'<tr><td>'+esc(memberName(x.from))+' &rarr; '+esc(memberName(x.to))
+          + '<div class="tag">settle up</div></td><td class="r">'+R2(x.a)+'</td></tr>').join('') + '</table>'
+        : '<div class="mini">' + (splitCount ? 'All square.' : 'No split transactions yet. Open any transaction and tap Split.') + '</div>')
+    + '</div>';
+
+  if(splitCount){
+    h += '<h2>Split transactions</h2><div class="card"><table>'
+      + Object.keys(S.splits).slice(0,25).map(id=>{
+          const t = S.tx.find(x=>String(x.id)===String(id)); if(!t) return '';
+          const sp = S.splits[id];
+          return '<tr onclick="editTx(&quot;'+t.id+'&quot;)" style="cursor:pointer"><td>'+esc(t.note||t.c)
+            + '<div class="tag">'+Object.entries(sp).map(([m,a])=>esc(memberName(m))+' '+R(a)).join(' · ')+'</div></td>'
+            + '<td class="r">'+R2(t.a)+'</td></tr>'; }).join('')
+      + '</table></div>';
+  }
+  return h;
+}
+function addMember(){
+  const n=(document.getElementById('mName')||{}).value?.trim();
+  if(!n) return;
+  S.members=(S.members||[]); S.members.push({id:uid(), name:n});
+  save(); render();
+}
+function delMember(id){
+  if(!confirm('Remove this person? Their splits stay on the transactions.')) return;
+  S.members=(S.members||[]).filter(m=>m.id!==id); save(); render();
+}
+
+/* split sheet, opened from a transaction */
+function splitSheet(txId){
+  const t=S.tx.find(x=>String(x.id)===String(txId)); if(!t) return;
+  const ms=S.members||[];
+  if(ms.length<2) return alert('Add at least two people under Insights → Household first.');
+  const cur=splitOf(t.id) || Object.fromEntries(ms.map(m=>[m.id, +(t.a/ms.length).toFixed(2)]));
+  openSheet(
+      '<div class="row"><h1>Split</h1><button class="b g sm" onclick="editTx(&quot;'+t.id+'&quot;)">Back</button></div>'
+    + '<div class="sub">'+esc(t.note||t.c)+' · '+R2(t.a)+'</div>'
+    + '<label>Paid by</label><select id="sPayer">'
+    + ms.map(m=>'<option value="'+m.id+'"'+((t.payer||ms[0].id)===m.id?' selected':'')+'>'+esc(m.name)+'</option>').join('')+'</select>'
+    + '<h2 style="margin-bottom:6px">Each person owes</h2><div class="card">'
+    + ms.map(m=>'<div class="cat"><div class="row"><div class="n">'+esc(m.name)+'</div>'
+        + '<input type="number" inputmode="decimal" step="0.01" id="sp_'+m.id+'" value="'+(cur[m.id]||0)
+        + '" style="max-width:110px;text-align:right" oninput="splitSum(&quot;'+t.id+'&quot;)"></div></div>').join('')
+    + '<div class="row" style="margin-top:10px"><div class="mini">Allocated</div>'
+    + '<div class="mono" style="font-weight:700" id="sTot"></div></div></div>'
+    + '<button class="b g" onclick="splitEven(&quot;'+t.id+'&quot;)">Split evenly</button>'
+    + '<div style="height:8px"></div>'
+    + '<button class="b" onclick="saveSplit(&quot;'+t.id+'&quot;)">Save split</button>'
+    + '<div style="height:8px"></div>'
+    + '<button class="b d" onclick="clearSplit(&quot;'+t.id+'&quot;)">Remove split</button>');
+  splitSum(t.id);
+}
+function splitVals(){
+  const o={};
+  (S.members||[]).forEach(m=>{ const el=document.getElementById('sp_'+m.id);
+    if(el) o[m.id]=parseFloat(el.value)||0; });
+  return o;
+}
+function splitSum(txId){
+  const t=S.tx.find(x=>String(x.id)===String(txId)); if(!t) return;
+  const sum=Object.values(splitVals()).reduce((a,b)=>a+b,0);
+  const el=document.getElementById('sTot'); if(!el) return;
+  el.textContent=R2(sum)+' of '+R2(t.a);
+  el.className='mono '+(Math.abs(sum-t.a)<0.01?'ok':'bd');
+}
+function splitEven(txId){
+  const t=S.tx.find(x=>String(x.id)===String(txId)); const ms=S.members||[];
+  if(!t||!ms.length) return;
+  const each=Math.floor(t.a/ms.length*100)/100;
+  let rem=+(t.a-each*ms.length).toFixed(2);
+  ms.forEach((m,i)=>{ const el=document.getElementById('sp_'+m.id);
+    if(el) el.value=(each+(i===0?rem:0)).toFixed(2); });
+  splitSum(txId);
+}
+function saveSplit(txId){
+  const t=S.tx.find(x=>String(x.id)===String(txId)); if(!t) return;
+  const v=splitVals();
+  const sum=Object.values(v).reduce((a,b)=>a+b,0);
+  if(Math.abs(sum-t.a)>0.01) return alert('The split comes to '+R2(sum)+' but the transaction is '+R2(t.a)+'. They must match.');
+  t.payer=document.getElementById('sPayer').value;
+  setSplit(t.id, v); render(); closeSheet();
+}
+function clearSplit(txId){ setSplit(txId, null); render(); closeSheet(); }
 
 function viewMonths(active){
   const by = {};
@@ -1241,6 +2077,112 @@ bindSeg('stmtSeg', v=>{ stmtView=v;
 bindSeg('insSeg', v=>{ insView=v; renderInsights(); });
 function toggleCats(){ catsExpanded=!catsExpanded; render(); }
 function setWeekly(v){ S.weekly=!!v; save(); render(); }
+function setMethod(m){ S.method=m; save(); render(); }
+async function doSignIn(){
+  const e=(document.getElementById('auEmail')||{}).value?.trim();
+  const p=(document.getElementById('auPass')||{}).value;
+  if(!syncCfg.url || !syncCfg.key) return alert('Add your Supabase URL and anon key under Sync first.');
+  if(!e || !p) return alert('Email and password are both needed.');
+  try{ await signIn(e,p); render(); flash('impMsg','s','Signed in as ' + e); syncNow(); }
+  catch(err){ alert(err.message); }
+}
+async function doSignUp(){
+  const e=(document.getElementById('auEmail')||{}).value?.trim();
+  const p=(document.getElementById('auPass')||{}).value;
+  if(!syncCfg.url || !syncCfg.key) return alert('Add your Supabase URL and anon key under Sync first.');
+  if(!e || !p) return alert('Email and password are both needed.');
+  if(p.length < 6) return alert('Password must be at least 6 characters.');
+  try{
+    const d = await signUp(e,p);
+    render();
+    alert(d.access_token ? 'Account created and signed in.'
+      : 'Account created. Check your email to confirm, then sign in.\n\n(You can turn confirmation off in Supabase → Authentication → Providers → Email.)');
+  }catch(err){ alert(err.message); }
+}
+
+function saveSyncCfg(){
+  const v = id => (document.getElementById(id)||{}).value || '';
+  syncCfg.url  = v('syUrl').trim().replace(/\/+$/,'');
+  syncCfg.key  = v('syKey').trim();
+  syncCfg.pass = v('syPass');
+  syncCfg.device = v('syDev').trim() || 'device';
+  syncCfg.auto = !!(document.getElementById('syAuto')||{}).checked;
+  _ck = null;
+  if(!syncCfg.url || !syncCfg.key || !syncCfg.pass) return alert('URL, key and passphrase are all needed.');
+  if(syncCfg.pass.length < 8) return alert('Use a passphrase of at least 8 characters — it is the only thing protecting your data.');
+  saveSync(); startPolling(); render();
+  syncNow();
+}
+function disconnectSync(){
+  if(!confirm('Stop syncing on this device? Your local data stays, and the encrypted copy on the server is left alone.')) return;
+  syncCfg = {}; saveSync(); _ck = null; clearInterval(_pollTimer); render();
+  setSyncStatus('off');
+}
+function showSyncSql(){
+  const sql = `-- Run once in Supabase -> SQL Editor.
+-- Two tables: who belongs to which household, and the encrypted blob itself.
+
+create table if not exists public.household_members (
+  household  text not null,
+  user_id    uuid not null default auth.uid(),
+  joined_at  timestamptz not null default now(),
+  primary key (household, user_id)
+);
+
+create table if not exists public.budget_sync (
+  household   text primary key,
+  payload     text not null,
+  updated_at  timestamptz not null default now(),
+  device      text
+);
+
+-- Refuse anything unreasonably large (2 MB)
+alter table public.budget_sync
+  drop constraint if exists payload_size,
+  add  constraint payload_size check (length(payload) < 2000000);
+
+alter table public.household_members enable row level security;
+alter table public.budget_sync       enable row level security;
+
+-- You may add yourself to a household. The household id is a hash of your
+-- passphrase, so knowing the passphrase is what grants entry.
+drop policy if exists "join a household" on public.household_members;
+create policy "join a household" on public.household_members
+  for insert to authenticated with check (user_id = auth.uid());
+
+drop policy if exists "see my memberships" on public.household_members;
+create policy "see my memberships" on public.household_members
+  for select to authenticated using (user_id = auth.uid());
+
+-- Only members of a household can touch its data. Signed out, you get nothing.
+drop policy if exists "members only" on public.budget_sync;
+create policy "members only" on public.budget_sync
+  for all to authenticated
+  using (exists (select 1 from public.household_members m
+                 where m.household = budget_sync.household and m.user_id = auth.uid()))
+  with check (exists (select 1 from public.household_members m
+                 where m.household = budget_sync.household and m.user_id = auth.uid()));
+
+-- The payload is encrypted in your browser before it ever gets here,
+-- so even a database administrator sees only ciphertext.`;
+  openSheet('<div class="row"><h1>One-time setup</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="sub">Supabase dashboard → SQL Editor → paste → Run. Then copy your project URL and anon key from Settings → API.</div>'
+    + '<pre style="max-height:46vh">'+esc(sql)+'</pre>'
+    + '<button class="b" onclick="copySql()">Copy SQL</button>'
+    + '<textarea id="sqlHolder" style="position:absolute;left:-9999px">'+esc(sql)+'</textarea>');
+}
+function copySql(){
+  const t=document.getElementById('sqlHolder');
+  navigator.clipboard ? navigator.clipboard.writeText(t.value).then(()=>alert('SQL copied.'))
+                      : (t.select(), document.execCommand('copy'), alert('SQL copied.'));
+}
+
+function setWindfall(){
+  const th=parseFloat((document.getElementById('wfThresh')||{}).value)||0;
+  const pct=Math.max(0,Math.min(100, parseFloat((document.getElementById('wfPct')||{}).value)||0));
+  S.windfall = th>0 ? {threshold:th, pct, handled:(S.windfall&&S.windfall.handled)||[]} : null;
+  save(); render();
+}
 function setGoal(v){ S.savingsGoal=+v||0; save(); render(); }
 
 let matchView = 'all';
@@ -1369,7 +2311,7 @@ function quick(i){
   go('today');
 }
 function add(o){
-  S.tx.push(Object.assign({id:uid()}, o));
+  S.tx.push(Object.assign({id:uid(), mod:Date.now()}, o));
   save(); render();
 }
 function addManual(){
@@ -1384,6 +2326,7 @@ async function del(id){
   const t = S.tx.find(x=>String(x.id)===String(id));
   if(t && t.photo) await photoDel(t.photo);
   S.tx = S.tx.filter(x=>String(x.id)!==String(id));
+  S.deleted = [...new Set([...(S.deleted||[]), String(id)])].slice(-2000);  /* tombstone */
   save(); render();
 }
 function setT(i,v){ S.cats[i].t = Math.max(0, +v||0); save(); render(); }
@@ -1418,11 +2361,62 @@ function catSheet(name){
   openSheet(
     '<div class="row"><h1>'+esc(name)+'</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
     + '<div class="sub">'+R2(sp)+' of '+R(cat.t)+' this cycle · '+list.length+' transaction'+(list.length===1?'':'s')+'</div>'
-    + (cat.base!=null ? '<div class="mini" style="margin-top:4px">Your Mar–Jul average was '+R(cat.base)+'/month</div>' : '')
+    + (cat.base!=null ? '<div class="mini" style="margin-top:4px">Your earlier average was '+R(cat.base)+'/month</div>' : '')
+    + (()=>{ const bits = whyItMatters(name, cat.base || sp);
+         return bits.length ? '<div class="infobox" style="margin-top:12px"><b>Why this matters</b><br>'
+           + bits.map(esc).join('<br>') + '</div>' : ''; })()
     + '<div class="card" style="margin-top:14px"><table>'
     + (list.length ? list.map(t=>'<tr><td>'+esc(t.note||'—')+'<div class="tag">'+t.d+'</div></td><td class="r">'+R2(t.a)+'</td></tr>').join('')
                    : '<tr><td class="mini">Nothing here this cycle.</td></tr>')
     + '</table></div>');
+}
+
+/* ---------- 9. categorisation queue ----------
+   Statement lines with no receipt still need a bucket. Rather than hunting
+   through a list, deal with them one at a time. */
+function needsCategory(){
+  return S.tx.filter(t => !t.mt && t.c === 'Uncategorised')
+             .sort((a,b)=> b.a - a.a);
+}
+function catQueue(i){
+  const q = needsCategory();
+  if(!q.length){ closeSheet(); return alert('Nothing left to categorise.'); }
+  const idx = Math.min(i||0, q.length-1), t = q[idx];
+  const m = merchantOf(t.note);
+  const guess = recall(t.note);
+  /* offer the categories you actually use most, then the rest */
+  const used = {};
+  S.tx.forEach(x=>{ if(x.c && x.c!=='Uncategorised') used[x.c]=(used[x.c]||0)+1; });
+  const ranked = S.cats.map(c=>c.n).sort((a,b)=>(used[b]||0)-(used[a]||0));
+  openSheet(
+      '<div class="row"><h1>Categorise</h1><button class="b g sm" onclick="closeSheet()">Done</button></div>'
+    + '<div class="sub">' + (idx+1) + ' of ' + q.length + ' · biggest first</div>'
+    + '<div class="card" style="margin-top:12px"><div class="row">'
+    + '<div><div style="font-weight:700;font-size:16px">' + esc(m) + '</div>'
+    + '<div class="mini">' + esc(t.note) + '</div><div class="tag">' + t.d + '</div></div>'
+    + '<div class="mono" style="font-weight:700;font-size:19px">' + R2(t.a) + '</div></div></div>'
+    + (guess ? '<div class="infobox">You usually file ' + esc(m) + ' under <b>' + esc(guess) + '</b>.</div>' : '')
+    + '<div class="chips">' + ranked.slice(0,10).map(c=>
+        '<button class="chip' + (c===guess?' on':'') + '" onclick="catPick(&quot;'+esc(t.id)+'&quot;,&quot;'+esc(c).replace(/"/g,'&#34;')+'&quot;,'+idx+')">'+esc(c)+'</button>').join('')
+    + '</div>'
+    + '<div style="height:12px"></div>'
+    + '<label>Something else</label><select onchange="catPick(&quot;'+esc(t.id)+'&quot;,this.value,'+idx+')">'
+    + '<option value="">Choose…</option>' + S.cats.map(c=>'<option>'+esc(c.n)+'</option>').join('') + '</select>'
+    + '<div style="height:12px"></div>'
+    + '<button class="b g" onclick="catQueue(' + (idx+1) + ')">Skip this one</button>');
+}
+function catPick(id, cat, idx){
+  if(!cat) return;
+  const t = S.tx.find(x=>String(x.id)===String(id));
+  if(t){ t.c = cat; t.userCat = true; remember(t.note, cat);
+    /* apply to every other line from the same merchant */
+    const k = merchantOf(t.note).toLowerCase();
+    S.tx.forEach(x=>{ if(x.id!==t.id && !x.userCat && merchantOf(x.note).toLowerCase()===k) x.c = cat; });
+  }
+  save(); render();
+  const left = needsCategory();
+  if(!left.length){ closeSheet(); return flash('impMsg','s','All transactions categorised.'); }
+  catQueue(Math.min(idx, left.length-1));
 }
 
 function editTx(id){
@@ -1452,6 +2446,9 @@ function editTx(id){
         : '')
     + '<div style="height:14px"></div><button class="b" onclick="saveTx(&quot;'+t.id+'&quot;)">Save</button>'
     + '<div style="height:8px"></div>'
+    + ((S.members||[]).length>1
+        ? '<button class="b g" onclick="splitSheet(&quot;'+t.id+'&quot;)">'
+          + (splitOf(t.id) ? 'Edit split' : 'Split with someone') + '</button><div style="height:8px"></div>' : '')
     + (t.photo ? '<button class="b g" onclick="viewShot(&quot;'+t.id+'&quot;)">View slip photo</button><div style="height:8px"></div>' : '')
     + '<button class="b d" onclick="del(&quot;'+t.id+'&quot;);closeSheet()">Delete transaction</button>');
 }
@@ -1467,7 +2464,8 @@ function saveTx(id){
   t.c = newCat;
   t.note = document.getElementById('eNote').value;
   t.d = document.getElementById('eDate').value || t.d;
-  if(catChanged) t.userCat = true;          /* protect from bulk recategorise */
+  if(catChanged){ t.userCat = true; remember(t.note, newCat); }   /* protect + learn */
+  t.mod = Date.now();
 
   let taught = 0;
   const rule = document.getElementById('eRule');
@@ -1514,7 +2512,11 @@ document.querySelectorAll('.nav button').forEach(b=> b.onclick = ()=>{
 });
 /* Reopening the app always lands on the current month, never where you browsed to. */
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'visible' && cycleOffset !== 0){ cycleOffset = 0; render(); }
+  if(document.visibilityState === 'visible'){
+    if(lockCfg.on && lockCfg.hash) showLock();     /* re-lock whenever you come back */
+    if(cycleOffset !== 0){ cycleOffset = 0; render(); }
+    if(syncCfg.auto && syncCfg.url) syncNow(true);      /* pick up the other phone's changes */
+  }
 });
 window.addEventListener('pageshow', ()=>{ if(cycleOffset !== 0){ cycleOffset = 0; render(); } });
 
@@ -1777,8 +2779,21 @@ drop.onclick = () => fileEl.click();
 ['dragleave','drop'].forEach(e=> drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.classList.remove('hot'); }));
 drop.addEventListener('drop', ev=>{ const f = ev.dataTransfer.files[0]; if(f) handle(f); });
 fileEl.onchange = e => { const f = e.target.files[0]; if(f) handle(f); e.target.value=''; };
+document.getElementById('csvIn').onchange = e => { const f = e.target.files[0]; if(f) handleCsv(f); e.target.value=''; };
 
-let pending = null, pendingFlows = null;
+async function handleCsv(f){
+  flash('impMsg','i','Reading ' + f.name + ' …');
+  document.getElementById('impResult').innerHTML = '';
+  try{
+    const text = await f.text();
+    const r = parseCsv(text);
+    if(r.error) return flash('impMsg','e', r.error);
+    if(!r.tx.length) return flash('impMsg','e','No spending rows found in that CSV.');
+    showImport(r, (r.bank||'CSV') + ' · ' + f.name);
+  }catch(err){ console.error(err); flash('impMsg','e','Could not read that file: ' + err.message); }
+}
+
+let pending = null, pendingFlows = null, lastStatement = null;
 async function handle(f){
   flash('impMsg','i','Reading ' + f.name + ' …');
   document.getElementById('impResult').innerHTML = '';
@@ -1805,7 +2820,31 @@ async function handle(f){
     const tot = pending.reduce((a,t)=>a+t.a,0);
 
     flash('impMsg','s','Parsed ' + r.tx.length + ' debits' + (dupes? ' · ' + dupes + ' already imported' : ''));
-    document.getElementById('impResult').innerHTML =
+    renderImportPreview(r, pairs, byCat, tot);
+  }catch(err){
+    console.error(err);
+    flash('impMsg','e','Could not read that PDF: ' + err.message);
+  }
+}
+
+function showImport(r, label){
+  const seen = new Set(S.tx.filter(isStmt).map(t=>t.d+'|'+t.a.toFixed(2)+'|'+(t.note||'')));
+  const fresh = r.tx.filter(t => !seen.has(t.d+'|'+t.a.toFixed(2)+'|'+t.desc));
+  pending = fresh.map(t => ({id:uid(), a:t.a, c:t.c, note:t.desc, d:t.d, src:'pdf'}));
+  const fseen = new Set((S.flows||[]).map(x=>x.d+'|'+x.a.toFixed(2)+'|'+x.note));
+  pendingFlows = (r.skipped||[]).filter(x=>x.kind && x.kind!=='income')
+    .map(x=>({id:uid(), d:x.d, a:x.a, note:x.desc, dir: x.kind==='savings-out'?'out':'in'}))
+    .filter(x=>!fseen.has(x.d+'|'+x.a.toFixed(2)+'|'+x.note));
+  const {pairs} = matchSets(pending, S.tx.filter(isLog));
+  const byCat = {}; pending.forEach(t=> byCat[t.c] = (byCat[t.c]||0) + t.a);
+  const tot = pending.reduce((a,t)=>a+t.a,0);
+  flash('impMsg','s','Parsed ' + r.tx.length + ' rows from ' + label);
+  renderImportPreview({tx:r.tx}, pairs, byCat, tot);
+}
+
+function renderImportPreview(r, pairs, byCat, tot){
+  const dupes = r.tx.length - pending.length;
+  document.getElementById('impResult').innerHTML =
         '<div class="card"><div class="row"><div style="font-weight:700">'+pending.length+' new statement lines</div>'
       + '<div class="mono" style="font-weight:700">'+R2(tot)+'</div></div>'
       + '<div class="mini" style="margin-top:4px">Credits, transfers between your own accounts and payments to Investment were excluded — they are not spending.</div>'
@@ -1823,10 +2862,6 @@ async function handle(f){
       + pending.slice(0,60).map(t=>'<tr><td>'+esc(t.note||'(bank fee)')+'<div class="tag">'+esc(t.c)+' &middot; '+t.d+'</div></td><td class="r">'+R2(t.a)+'</td></tr>').join('')
       + (pending.length>60 ? '<tr><td class="mini">…and '+(pending.length-60)+' more</td><td></td></tr>' : '')
       + '</table></div>';
-  }catch(err){
-    console.error(err);
-    flash('impMsg','e','Could not read that PDF: ' + err.message);
-  }
 }
 function commit(){
   if(!pending || !pending.length) return;
@@ -1836,6 +2871,11 @@ function commit(){
   });
   if(pendingFlows && pendingFlows.length){ S.flows = (S.flows||[]).concat(pendingFlows); }
   const n = pending.length; pending = null; pendingFlows = null;
+  /* The statement file itself is never stored — it is parsed in memory and the
+     reference dropped here. Nothing of it survives on disk or leaves the device. */
+  lastStatement = null;
+  const fin = document.getElementById('file'); if(fin) fin.value = '';
+  const cin = document.getElementById('csvIn'); if(cin) cin.value = '';
   save(); render();
   flash('impMsg','s', n + ' statement lines added. Check the Match tab.');
   go('match');
@@ -1947,7 +2987,10 @@ if('serviceWorker' in navigator){
 
 /* ---------- boot ---------- */
 document.getElementById('mDate').value = iso(new Date());
+if(lockCfg.on && lockCfg.hash) showLock();
 render();
+startPolling();
+if(syncCfg.auto && syncCfg.url) syncNow(true);
 if(!S.tx.length && !S.income){
   document.getElementById('alerts').innerHTML =
     '<div class="infobox"><b>First run.</b> Set your income and pay day under Budget, '
