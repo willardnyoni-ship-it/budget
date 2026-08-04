@@ -165,8 +165,11 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <button class="b" onclick="document.getElementById('camIn').click()">&#128247; Camera</button>
     <button class="b g" onclick="document.getElementById('galIn').click()">Gallery</button>
   </div>
+  <div style="height:8px"></div>
+  <button class="b g" onclick="document.getElementById('batchIn').click()">&#128218; Scan a stack of slips</button>
   <input type="file" id="camIn" accept="image/*" capture="environment" style="display:none">
   <input type="file" id="galIn" accept="image/*" style="display:none">
+  <input type="file" id="batchIn" accept="image/*" multiple style="display:none">
 
   <div class="msg" id="snapMsg"></div>
   <div class="prog" id="ocrProg" style="display:none"><i></i></div>
@@ -608,7 +611,17 @@ async function runOcr(blob, onProg, psm){
   const res = await Tesseract.recognize(blob, 'eng', {
     logger: m => { if(m.status === 'recognizing text') onProg(0.1 + m.progress*0.85, 'Reading slip…'); }
   }, { tessedit_pageseg_mode: psm || '4' });
-  return res.data.text || '';
+  return { text: res.data.text || '', lines: ocrLines(res.data), conf: res.data.confidence };
+}
+
+/* Tesseract v5 moved line data around; dig it out wherever it lives. */
+function ocrLines(data){
+  if(!data) return [];
+  if(Array.isArray(data.lines) && data.lines.length) return data.lines;
+  const out = [];
+  (data.blocks||[]).forEach(b => (b.paragraphs||[]).forEach(pp => (pp.lines||[]).forEach(l => out.push(l))));
+  if(out.length) return out;
+  return String(data.text||'').split('\n').map(t=>({text:t, confidence:null}));
 }
 
 /* ---------- pull amount / date / merchant out of slip text ---------- */
@@ -622,7 +635,49 @@ const DATE_RES = [
 ];
 const toNum = m => parseFloat((m[1].replace(/[ ,]/g,'')) + '.' + m[2]);
 
-function extractReceipt(text){
+/* ---------- line items ----------
+   A slip line is "<description> ... <price>". We keep lines that look like a
+   purchase and drop the accounting furniture (totals, VAT, change, card, etc).
+   The honest confidence signal is arithmetic: if the kept items add up to the
+   printed total, the read is almost certainly correct. */
+const ITEM_DROP = /\b(sub[\s-]*total|totaal|total|amount due|balance|vat|btw|tax|change|kleingeld|cash|tendered|card|credit|debit|approved|auth|ref\b|terminal|merchant|cashier|till|invoice|receipt|slip|thank|welcome|tel\b|reg\b|www|http|date|time|items?\s*:|qty\b|rounding|discount|loyalty|points|savings?\b|you saved)/i;
+const QTY_PREFIX = /^\s*(\d+)\s*(x|@|\*)\s*/i;
+
+function extractItems(lines, total){
+  const items = [];
+  for(const raw of lines){
+    const line = (raw.text !== undefined ? raw.text : raw).trim();
+    if(!line || line.length < 4) continue;
+    if(ITEM_DROP.test(line)) continue;
+    const ms = [...line.matchAll(AMT_RE)];
+    if(!ms.length) continue;
+    const last = ms[ms.length-1];
+    const amt = toNum(last);
+    if(!amt || amt <= 0) continue;
+    /* Deliberately NOT skipping lines priced at or above the total: total lines are
+       already caught by ITEM_DROP, and dropping a big value here would hide exactly
+       the mis-read that the sum check is meant to expose. */
+    let desc = line.slice(0, last.index)
+        .replace(QTY_PREFIX,'')
+        .replace(/[^A-Za-z0-9&'%\.\-\s]/g,' ')
+        .replace(/\s+/g,' ').trim();
+    const letters = (desc.match(/[A-Za-z]/g)||[]).length;
+    if(letters < 3) continue;                        /* price with no name = noise */
+    if(desc.length > 40) desc = desc.slice(0,40);
+    items.push({ d: desc, a: amt, conf: raw.confidence != null ? Math.round(raw.confidence) : null });
+  }
+  return items;
+}
+
+/* Does the item list reconcile with the printed total? */
+function reconcileItems(items, total){
+  const sum = items.reduce((a,i)=>a+i.a, 0);
+  if(!total) return {sum, diff:null, ok:false};
+  const diff = +(sum - total).toFixed(2);
+  return {sum, diff, ok: Math.abs(diff) <= Math.max(0.05, total*0.005)};
+}
+
+function extractReceipt(text, ocrLines){
   const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
   /* --- total: prefer a line that says TOTAL and is not a VAT/subtotal line --- */
@@ -675,7 +730,10 @@ function extractReceipt(text){
   if(!merchant) merchant = cands[0] || '';
 
   const cat = classify(merchant + ' ' + lines.slice(0,10).join(' '));
-  return {total, date: date || iso(new Date()), merchant, cat, how, text};
+  const items = extractItems(ocrLines && ocrLines.length ? ocrLines : lines, total);
+  const rec = reconcileItems(items, total);
+  return {total, date: date || iso(new Date()), merchant, cat, how, text, items, rec,
+          totalConf: null};
 }
 
 /* ============================================================
@@ -1380,6 +1438,12 @@ function editTx(id){
       + S.cats.map(c=>'<option'+(c.n===t.c?' selected':'')+'>'+esc(c.n)+'</option>').join('') + '</select>'
     + '<label>Description</label><input id="eNote" value="'+esc(t.note||'')+'">'
     + '<label>Date</label><input id="eDate" type="date" value="'+t.d+'">'
+    + ((t.items && t.items.length)
+        ? '<h2 style="margin-bottom:6px">What was on the slip</h2><div class="card"><table>'
+          + t.items.map(i=>'<tr><td>'+esc(i.d)+'</td><td class="r">'+R2(i.a)+'</td></tr>').join('')
+          + '<tr><td class="mini">'+t.items.length+' items</td><td class="r mini">'
+          + R2(t.items.reduce((a,i)=>a+i.a,0))+'</td></tr></table></div>'
+        : '')
     + (m && m!=='(bank fee)'
         ? '<div class="card" style="margin-top:14px;background:var(--card2)">'
           + '<label style="margin-top:0">Remember this</label>'
@@ -1459,30 +1523,48 @@ window.addEventListener('pageshow', ()=>{ if(cycleOffset !== 0){ cycleOffset = 0
    ============================================================ */
 document.getElementById('camIn').onchange = e => { const f = e.target.files[0]; if(f) snap(f); e.target.value=''; };
 document.getElementById('galIn').onchange = e => { const f = e.target.files[0]; if(f) snap(f); e.target.value=''; };
+document.getElementById('batchIn').onchange = e => {
+  const fs = [...e.target.files]; e.target.value='';
+  if(!fs.length) return;
+  if(fs.length === 1) return snap(fs[0]);
+  snapBatch(fs);
+};
+
+async function readSlip(file, onProg){
+  const [thumb, ocrImg] = await Promise.all([ shrink(file, 1000, 0.6), forOcr(file) ]);
+  let out = {text:'', lines:[]}, r = null;
+  try{
+    out = await runOcr(ocrImg, onProg, '4');
+    r = extractReceipt(out.text, out.lines);
+    /* Retry once with a different page-segmentation mode when the first pass is thin.
+       Slips shot at an angle or with a wide margin often only read on the retry. */
+    if(r.total == null || !r.merchant || !r.items.length){
+      onProg(0.9, 'Retrying with a different reading mode…');
+      const alt = await runOcr(await forOcr(file, 2400), p=>onProg(0.9 + p*0.1), '6');
+      const r2 = extractReceipt(alt.text, alt.lines);
+      const score = x => (x.total != null ? 3 : 0) + (x.merchant ? 1 : 0)
+                       + (x.rec && x.rec.ok ? 3 : 0) + Math.min(3, x.items.length);
+      if(score(r2) > score(r)){ r = r2; out = alt; }
+    }
+  }catch(err){ console.warn(err); }
+  if(!r) r = extractReceipt(out.text, out.lines);
+  r.readable = r.total != null || r.items.length > 0;
+  return {r, thumb};
+}
 
 async function snap(file){
   const prog = document.getElementById('ocrProg'), bar = prog.firstElementChild;
   prog.style.display = 'block'; bar.style.width = '2%';
   const onProg = (p,label) => { bar.style.width = Math.round(p*100)+'%'; if(label) flash('snapMsg','i',label); };
   try{
-    const [thumb, ocrImg] = await Promise.all([ shrink(file, 1000, 0.6), forOcr(file) ]);
-    let text = '', r = null;
-    try{
-      text = await runOcr(ocrImg, onProg, '4');
-      r = extractReceipt(text);
-      /* Nothing usable? Try once more with a different page-segmentation mode.
-         Slips shot at an angle or with a wide margin often only read on the retry. */
-      if(r.total == null || !r.merchant){
-        onProg(0.9, 'Retrying with a different reading mode…');
-        const alt = await runOcr(await forOcr(file, 2400), p=>onProg(0.9 + p*0.1), '6');
-        const r2 = extractReceipt(alt);
-        const score = x => (x.total != null ? 2 : 0) + (x.merchant ? 1 : 0) + (x.text.length > 40 ? 1 : 0);
-        if(score(r2) > score(r)){ r = r2; text = alt; }
-      }
-    }
-    catch(err){ console.warn(err); flash('snapMsg','wn','OCR unavailable — enter the amount yourself.'); }
-    if(!r) r = extractReceipt(text);
+    const {r, thumb} = await readSlip(file, onProg);
     prog.style.display = 'none';
+    if(!r.readable){
+      /* Fully unreadable — go straight to manual entry rather than an empty form. */
+      flash('snapMsg','wn','Could not read that slip. Enter it yourself — the photo is kept.');
+      manualWithPhoto(thumb, r);
+      return;
+    }
     confirmSheet(r, thumb);
   }catch(err){
     prog.style.display = 'none';
@@ -1491,33 +1573,197 @@ async function snap(file){
   }
 }
 
-let _pendingThumb = null;
-function confirmSheet(r, thumb){
+/* ---------- batch: a stack of slips in one sweep ---------- */
+let batchQueue = [];
+async function snapBatch(files){
+  const prog = document.getElementById('ocrProg'), bar = prog.firstElementChild;
+  prog.style.display = 'block';
+  batchQueue = [];
+  const n = files.length;
+  for(let i=0;i<n;i++){
+    flash('snapMsg','i','Reading slip ' + (i+1) + ' of ' + n + '…');
+    const base = i/n;
+    try{
+      const {r, thumb} = await readSlip(files[i], p => { bar.style.width = Math.round((base + p/n)*100)+'%'; });
+      batchQueue.push({r, thumb, keep:true});
+    }catch(err){ console.warn('slip '+(i+1)+' failed', err); }
+  }
+  prog.style.display = 'none';
+  const good = batchQueue.filter(x=>x.r.readable).length;
+  flash('snapMsg', good ? 's' : 'e',
+    'Read ' + good + ' of ' + n + ' slip' + (n===1?'':'s') + (good<n ? ' — the rest need typing in' : ''));
+  batchSheet();
+}
+
+function batchSheet(){
+  const tot = batchQueue.filter(x=>x.keep && x.r.readable).reduce((a,x)=>a+(x.r.total||0),0);
+  openSheet(
+      '<div class="row"><h1>' + batchQueue.length + ' slips</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
+    + '<div class="sub">' + R2(tot) + ' total · tap any slip to check or correct it</div>'
+    + '<div class="card" style="margin-top:12px"><table>'
+    + batchQueue.map((x,i)=>{
+        const r = x.r;
+        const state = !r.readable ? '<span class="tag bd">unreadable</span>'
+                    : r.rec.ok    ? '<span class="tag ok">items check out</span>'
+                    : r.items.length ? '<span class="tag wn">' + r.items.length + ' items, does not add up</span>'
+                                     : '<span class="tag">total only</span>';
+        return '<tr><td onclick="batchEdit('+i+')" style="cursor:pointer">'
+             + '<div style="font-weight:600">' + esc(r.merchant || 'Unknown shop') + '</div>'
+             + '<div class="tag">' + esc(r.cat) + ' · ' + r.date + '</div> ' + state + '</td>'
+             + '<td class="r">' + (r.total!=null ? R2(r.total) : '—')
+             + '<div class="mini" style="font-weight:400">'
+             + '<label><input type="checkbox" ' + (x.keep?'checked':'') + ' onchange="batchToggle('+i+',this.checked)"> keep</label>'
+             + '</div></td></tr>'; }).join('')
+    + '</table></div>'
+    + '<button class="b" onclick="batchSave()">Save selected slips</button>');
+}
+function batchToggle(i, v){ batchQueue[i].keep = v; }
+function batchEdit(i){ confirmSheet(batchQueue[i].r, batchQueue[i].thumb, i); }
+async function batchSave(){
+  let n = 0;
+  for(const x of batchQueue){
+    if(!x.keep || !x.r.readable || x.r.total == null) continue;
+    await storeSlip(x.r, x.thumb);
+    n++;
+  }
+  batchQueue = [];
+  closeSheet(); render();
+  flash('snapMsg','s', n + ' slip' + (n===1?'':'s') + ' saved.');
+  go('today');
+}
+
+/* ---------- manual fallback, photo retained ---------- */
+function manualWithPhoto(thumb, r){
   _pendingThumb = thumb;
   const url = URL.createObjectURL(thumb);
+  openSheet(
+      '<div class="row"><h1>Type it in</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
+    + '<div class="sub">The photo is kept either way, so you have the record.</div>'
+    + '<img class="shot" style="margin-top:12px" src="'+url+'">'
+    + '<label>Amount (R)</label><input id="cAmt" type="number" inputmode="decimal" step="0.01" autofocus>'
+    + '<label>Where</label><input id="cNote" value="'+esc((r&&r.merchant)||'')+'">'
+    + '<label>Category</label><select id="cCat">'+S.cats.map(x=>'<option>'+esc(x.n)+'</option>').join('')+'</select>'
+    + '<label>Date</label><input id="cDate" type="date" value="'+((r&&r.date)||iso(new Date()))+'">'
+    + '<div style="height:14px"></div><button class="b" onclick="saveSlip()">Save</button>'
+    + ((r&&r.text) ? '<details><summary>What the OCR managed to read</summary><pre>'+esc(r.text.slice(0,1200))+'</pre></details>' : ''));
+}
+
+let _pendingThumb = null, _pendingItems = [], _batchIdx = null;
+const LOW_CONF = 80;                       /* below this, Tesseract is guessing */
+
+function confirmSheet(r, thumb, batchIdx){
+  _pendingThumb = thumb;
+  _pendingItems = (r.items||[]).map(i=>({...i}));
+  _batchIdx = (batchIdx === undefined) ? null : batchIdx;
+  const url = URL.createObjectURL(thumb);
   const conf = r.total != null;
+  const rec  = r.rec || reconcileItems(_pendingItems, r.total);
+
+  const banner = !conf
+    ? '<div class="warnbox" style="margin-top:10px">No total found. Type the amount in.</div>'
+    : rec.ok
+      ? '<div class="card" style="margin-top:10px;border-color:var(--acc)"><span class="ok" style="font-weight:700">&#10003; Items add up to the total</span>'
+        + '<div class="mini" style="margin-top:4px">' + _pendingItems.length + ' items · '
+        + R2(rec.sum) + ' vs printed ' + R2(r.total) + '. This read is almost certainly right.</div></div>'
+      : _pendingItems.length
+        ? '<div class="warnbox">Items come to ' + R2(rec.sum) + ' but the slip says ' + R2(r.total)
+          + ' — out by ' + R2(Math.abs(rec.diff)) + '. Check the highlighted lines.</div>'
+        : '<div class="infobox">Read the total from ' + esc(r.how) + ', but could not pick out individual items.</div>';
+
   openSheet(
       '<div class="row"><h1>Check before saving</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
-    + (conf ? '<div class="sub">Read from ' + esc(r.how) + '. Correct anything that is wrong.</div>'
-            : '<div class="warnbox" style="margin-top:10px">Could not find a total on this slip. Type the amount in.</div>')
+    + banner
     + '<img class="shot" style="margin-top:12px" src="'+url+'">'
     + '<label>Amount (R)</label><input id="cAmt" type="number" inputmode="decimal" step="0.01" value="'+(r.total??'')+'"'+(conf?'':' autofocus')+'>'
     + '<label>Where</label><input id="cNote" value="'+esc(r.merchant)+'">'
     + '<label>Category</label><select id="cCat">'+S.cats.map(x=>'<option'+(x.n===r.cat?' selected':'')+'>'+esc(x.n)+'</option>').join('')+'</select>'
     + '<label>Date</label><input id="cDate" type="date" value="'+r.date+'">'
-    + '<div style="height:14px"></div><button class="b" onclick="saveSlip()">Save slip</button>'
+    + itemsHtml()
+    + '<div style="height:14px"></div>'
+    + '<button class="b" onclick="saveSlip()">' + (_batchIdx!==null ? 'Update this slip' : 'Save slip') + '</button>'
     + '<details><summary>What the OCR actually read</summary><pre>'+esc((r.text||'(nothing)').slice(0,1400))+'</pre></details>');
+}
+
+/* Confident lines render as plain text and stay locked. Only the uncertain ones
+   are editable up front — tap any locked line to unlock it. */
+function itemsHtml(){
+  if(!_pendingItems.length) return '';
+  const low = _pendingItems.filter(i=>i.conf!=null && i.conf < LOW_CONF).length;
+  return '<h2 style="margin-bottom:6px">Line items'
+    + (low ? ' <span class="wn" style="text-transform:none;letter-spacing:0">· '+low+' unclear</span>' : '')
+    + '</h2><div class="card" id="itemBox">' + _pendingItems.map((it,i)=>{
+      const unsure = it.conf == null ? false : it.conf < LOW_CONF;
+      return '<div class="cat" style="padding:8px 0"><div class="row">'
+        + (unsure
+            ? '<input value="'+esc(it.d)+'" oninput="itemSet('+i+',\'d\',this.value)" style="flex:1;font-size:14px;padding:8px;border-color:var(--warn)">'
+            : '<div style="flex:1;font-size:14px" onclick="itemUnlock('+i+')">'+esc(it.d)
+              + '<div class="mini">tap to edit</div></div>')
+        + (unsure
+            ? '<input type="number" inputmode="decimal" step="0.01" value="'+it.a+'" oninput="itemSet('+i+',\'a\',this.value)" style="max-width:92px;text-align:right;font-size:14px;padding:8px;border-color:var(--warn)">'
+            : '<div class="mono" style="font-weight:600;font-size:14px" onclick="itemUnlock('+i+')">'+R2(it.a)+'</div>')
+        + '<button class="b d sm" style="padding:6px 9px" onclick="itemDrop('+i+')">&times;</button>'
+        + '</div>' + (it.conf!=null ? '<div class="mini">'+(unsure?'<span class="wn">low confidence '+it.conf+'%</span>':'confidence '+it.conf+'%')+'</div>' : '')
+        + '</div>'; }).join('')
+    + '<div class="row" style="margin-top:10px"><div class="mini">Items total</div>'
+    + '<div class="mono" style="font-weight:700" id="itemSum">'+R2(_pendingItems.reduce((a,i)=>a+i.a,0))+'</div></div>'
+    + '<div style="height:8px"></div><button class="b g" onclick="itemsToAmount()">Use items total as the amount</button>'
+    + '</div>';
+}
+function itemSet(i,k,v){
+  _pendingItems[i][k] = (k==='a') ? (parseFloat(v)||0) : v;
+  _pendingItems[i].conf = 100;                       /* you corrected it, so it is certain */
+  const el = document.getElementById('itemSum');
+  if(el) el.textContent = R2(_pendingItems.reduce((a,x)=>a+x.a,0));
+}
+function itemUnlock(i){ _pendingItems[i].conf = LOW_CONF - 1; refreshItems(); }
+function itemDrop(i){ _pendingItems.splice(i,1); refreshItems(); }
+function refreshItems(){
+  const box = document.getElementById('itemBox');
+  if(!box) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = itemsHtml();
+  const fresh = wrap.querySelector('#itemBox');
+  if(fresh) box.replaceWith(fresh); 
+}
+function itemsToAmount(){
+  const sum = _pendingItems.reduce((a,i)=>a+i.a,0);
+  const f = document.getElementById('cAmt');
+  if(f){ f.value = sum.toFixed(2); }
+}
+
+/* Write a slip (and its items) to the ledger. */
+async function storeSlip(r, thumb, override){
+  const o = override || {};
+  const pid = uid();
+  try{ if(thumb) await photoPut(pid, thumb); }catch(e){ console.warn('photo not stored', e); }
+  S.tx.push({ id:uid(), a:o.a ?? r.total, c:o.c ?? r.cat, note:(o.note ?? r.merchant) || '',
+              d:o.d ?? r.date, src:'slip', photo:pid,
+              items:(o.items ?? r.items ?? []).map(i=>({d:i.d, a:i.a})) });
+  save();
 }
 
 async function saveSlip(){
   const a = parseFloat(document.getElementById('cAmt').value);
   if(!a || a<=0) return alert('Enter an amount greater than zero.');
-  const pid = uid();
-  try{ await photoPut(pid, _pendingThumb); }catch(e){ console.warn('photo not stored', e); }
-  add({a, c:document.getElementById('cCat').value, note:document.getElementById('cNote').value.trim(),
-       d:document.getElementById('cDate').value || iso(new Date()), src:'slip', photo:pid});
-  _pendingThumb = null;
-  closeSheet();
+  const payload = {
+    a, c: document.getElementById('cCat').value,
+    note: document.getElementById('cNote').value.trim(),
+    d: document.getElementById('cDate').value || iso(new Date()),
+    items: _pendingItems
+  };
+  if(_batchIdx !== null){
+    /* editing one slip inside a batch — update it, do not save yet */
+    const x = batchQueue[_batchIdx];
+    x.r.total = a; x.r.cat = payload.c; x.r.merchant = payload.note;
+    x.r.date = payload.d; x.r.items = _pendingItems; x.r.readable = true;
+    x.r.rec = reconcileItems(_pendingItems, a);
+    _batchIdx = null; _pendingItems = [];
+    return batchSheet();
+  }
+  await storeSlip({total:a, cat:payload.c, merchant:payload.note, date:payload.d, items:_pendingItems},
+                  _pendingThumb, payload);
+  _pendingThumb = null; _pendingItems = [];
+  closeSheet(); render();
   flash('snapMsg','s','Slip saved — '+R2(a));
   go('today');
 }
