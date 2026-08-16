@@ -331,7 +331,7 @@ a{color:var(--blue)}
     <div class="card reveal d1" style="margin-top:24px">
       <table>
         <tr><th>What they believed</th><th class="r">What the numbers said</th></tr>
-        <tr><td>Saving every month</td><td class="r bad">−R10 537 taken out</td></tr>
+        <tr><td>Saving every month</td><td class="r bad">-R10 537 taken out</td></tr>
         <tr><td>Spending about what they earn</td><td class="r bad">R5 876 over, in 4 months</td></tr>
         <tr><td>One gym membership</td><td class="r warn">Two gyms, one billed twice</td></tr>
         <tr><td>Eating out is under control</td><td class="r warn">R1 588/mo · 21 coffee visits</td></tr>
@@ -474,7 +474,7 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 function fmt(n, prefix, suffix){
   const neg = n < 0;
   const v = Math.round(Math.abs(n)).toLocaleString('en-ZA').replace(/,/g,' ');
-  return (neg?'−':'') + (prefix||'') + v + (suffix||'');
+  return (neg?'-':'') + (prefix||'') + v + (suffix||'');
 }
 function countUp(el){
   if(el._done) return; el._done = true;

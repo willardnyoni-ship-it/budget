@@ -1838,7 +1838,7 @@ function render(){
       zb.innerHTML='<div class="card" style="margin-top:12px;border-color:'+(Math.abs(u)<1?'var(--acc)':'var(--warn)')+'">'
         +'<div class="row"><div><div class="mini">Still to allocate</div>'
         +'<div class="mono '+(Math.abs(u)<1?'ok':u<0?'bd':'wn')+'" style="font-size:23px;font-weight:700">'
-        +(u<0?'−':'')+R(Math.abs(u))+'</div></div>'
+        +(u<0?'-':'')+R(Math.abs(u))+'</div></div>'
         +'<button class="b" style="width:auto;padding:11px 14px" onclick="autoAllocate()">Assign rest</button></div>'
         +'<div class="mini" style="margin-top:6px">'
         +(Math.abs(u)<1 ? 'Every rand has a job.' : u>0 ? 'Give this money a purpose before the month starts.'
@@ -2127,7 +2127,7 @@ function viewSavings(){
   const totIn  = f.filter(x=>x.dir==='in').reduce((a,x)=>a+x.a,0);
   const net = totOut - totIn;
   let h = '<div class="card hero"><div class="lbl">Net into savings</div>'
-    + '<div class="big '+(net>=0?'ok':'bd')+'">'+ (net>=0?'':'−') + R(Math.abs(net)) +'</div>'
+    + '<div class="big '+(net>=0?'ok':'bd')+'">'+ (net>=0?'':'-') + R(Math.abs(net)) +'</div>'
     + '<div class="note">'+R(totOut)+' paid in · '+R(totIn)+' taken back out across '+ms.length+' months</div></div>';
   if(net < 0) h += '<div class="warnbox">You have taken out '+R(-net)+' more than you put away. '
     + 'Money moving to savings and coming straight back is not saving.</div>';
@@ -2136,7 +2136,7 @@ function viewSavings(){
     const pct = Math.max(0, Math.min(100, perMonth/S.savingsGoal*100));
     h += '<div class="card"><div class="row"><div><div class="mini">Average per month</div>'
       + '<div class="mono '+(perMonth>=S.savingsGoal?'ok':'bd')+'" style="font-size:21px;font-weight:700">'
-      + (perMonth>=0?'':'−')+R(Math.abs(perMonth))+'</div></div>'
+      + (perMonth>=0?'':'-')+R(Math.abs(perMonth))+'</div></div>'
       + '<div style="text-align:right"><div class="mini">Goal</div>'
       + '<div class="mono" style="font-size:21px;font-weight:700;color:var(--dim)">'+R(S.savingsGoal)+'</div></div></div>'
       + '<div class="bar"><i style="width:'+pct+'%;background:'+(pct>=100?'var(--acc)':'var(--warn)')+'"></i></div>'
@@ -2147,7 +2147,7 @@ function viewSavings(){
   h += '<h2>By month</h2><div class="card"><table>' + ms.slice().reverse().map(m=>{
       const v=by[m], n=v.out-v.in;
       return '<tr><td>'+m+'<div class="tag">'+R(v.out)+' in · '+R(v.in)+' out</div></td>'
-        +'<td class="r '+(n>=0?'ok':'bd')+'">'+(n>=0?'':'−')+R(Math.abs(n))+'</td></tr>';
+        +'<td class="r '+(n>=0?'ok':'bd')+'">'+(n>=0?'':'-')+R(Math.abs(n))+'</td></tr>';
     }).join('') + '</table></div>';
   return h;
 }
@@ -2332,7 +2332,7 @@ function quick(i, ev){
   buzz(14);
   if(ev && ev.target){
     const r = ev.target.getBoundingClientRect();
-    floatAmount(r.left + r.width/2, r.top, '−' + R(s.a), 'var(--warn)');
+    floatAmount(r.left + r.width/2, r.top, '-' + R(s.a), 'var(--warn)');
   }
   flash('snapMsg','s', s.l + ' - ' + R2(s.a) + ' logged');
   setTimeout(()=>go('today'), 260);          /* let the amount finish floating */
