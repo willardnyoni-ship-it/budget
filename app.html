@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#fef7ff">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-title" content="Budget">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Private offline budget tracker.">
@@ -21,9 +21,9 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  /* Material 3 light — tonal surfaces instead of borders, green primary */
-  --bg:#fef7ff; --card:#f3edf7; --card2:#ece6f0; --line:#cac4d0;
-  --tx:#1d1b20; --dim:#49454f; --acc:#386a20; --accC:#b7f397; --warn:#8a5c00; --bad:#ba1a1a; --blue:#0061a4;
+  /* Apple Wallet style — near-black surfaces, hairline dividers, restrained green accent */
+  --bg:#000000; --card:#1c1c1e; --card2:#2c2c2e; --line:#38383a;
+  --tx:#ffffff; --dim:#98989d; --acc:#30d158; --accC:#132a1a; --warn:#ff9f0a; --bad:#ff453a; --blue:#0a84ff;
   --safe:env(safe-area-inset-bottom,0px);
   --ease:cubic-bezier(.22,1,.36,1);      /* settles rather than stops dead */
   --pop:cubic-bezier(.34,1.56,.64,1);    /* slight overshoot, feels alive */
@@ -47,7 +47,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 @keyframes shimmer{0%{background-position:-450px 0}100%{background-position:450px 0}}
-@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(56,106,32,.45)}70%{box-shadow:0 0 0 14px rgba(56,106,32,0)}100%{box-shadow:0 0 0 0 rgba(56,106,32,0)}}
+@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(48,209,88,.45)}70%{box-shadow:0 0 0 14px rgba(48,209,88,0)}100%{box-shadow:0 0 0 0 rgba(48,209,88,0)}}
 @keyframes floatUp{0%{opacity:0;transform:translateY(6px) scale(.9)}
                    25%{opacity:1;transform:translateY(0) scale(1)}
                    100%{opacity:0;transform:translateY(-38px) scale(1)}}
@@ -79,27 +79,27 @@ body{padding-bottom:calc(78px + var(--safe))}
 h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.3px}
 h2{font-size:13px;margin:22px 0 9px;color:var(--dim);text-transform:uppercase;letter-spacing:.9px;font-weight:600}
 .sub{color:var(--dim);font-size:12.5px;margin-top:2px}
-.card{background:var(--card);border-radius:20px;padding:17px;margin-bottom:12px}
+.card{background:var(--card);border:.5px solid var(--line);border-radius:20px;padding:17px;margin-bottom:12px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.hero{text-align:center;padding:26px 16px;border-radius:28px;background:var(--accC)}
-.hero .big{font-size:46px;font-weight:800;letter-spacing:-1.8px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--acc)}
-.hero .lbl{color:var(--acc);opacity:.75;font-size:12.5px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.hero .note{color:var(--acc);opacity:.75;font-size:12.5px;margin-top:8px}
+.hero{text-align:center;padding:26px 16px;border-radius:28px;background:linear-gradient(160deg,#1c1c1e,#0b0b0c);border:.5px solid var(--line)}
+.hero .big{font-size:46px;font-weight:800;letter-spacing:-1.8px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--tx)}
+.hero .lbl{color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.hero .note{color:var(--acc);font-size:12.5px;margin-top:8px}
 .ok{color:var(--acc)} .wn{color:var(--warn)} .bd{color:var(--bad)} .bl{color:var(--blue)}
-.bar{height:9px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;margin-top:9px}
+.bar{height:9px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-top:9px}
 .bar>i{display:block;height:100%;border-radius:99px;transition:width .35s ease}
 .cat{padding:11px 0;border-bottom:1px solid var(--line)}
 .cat:last-child{border-bottom:0}
 .cat .n{font-weight:600;font-size:14.5px}
 .cat .v{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
-.nav{position:fixed;left:0;right:0;bottom:0;background:rgba(254,247,255,.92);
+.nav{position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.82);
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-top:1px solid var(--line);display:flex;padding-bottom:var(--safe);z-index:60}
 .nav button{flex:1;background:none;border:0;color:var(--dim);padding:10px 1px 8px;
   font-size:9.5px;font-family:inherit;font-weight:600;letter-spacing:.1px;position:relative}
 .nav button.on{color:var(--acc)}
 .nav button div{font-size:20px;line-height:1.15;transition:transform .22s var(--pop)}
-.nav button.on div{transform:translateY(-2px) scale(1.14);background:var(--accC);border-radius:16px;padding:2px 14px;width:fit-content;margin:0 auto}
+.nav button.on div{transform:translateY(-2px) scale(1.14);background:rgba(48,209,88,.18);border-radius:16px;padding:2px 14px;width:fit-content;margin:0 auto}
 .nav .dot{position:absolute;top:6px;right:calc(50% - 17px);width:8px;height:8px;
   border-radius:99px;background:var(--warn);display:none}
 .nav .dot.on{display:block}
@@ -113,7 +113,7 @@ button.sm{width:auto;padding:8px 13px;font-size:12.5px;border-radius:999px}
 input,select,textarea{background:var(--card2);border:1px solid var(--line);color:var(--tx);
   border-radius:13px;padding:14px;font-size:16px;width:100%;font-family:inherit;
   transition:border-color .18s, box-shadow .18s}
-input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(56,106,32,.15)}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(48,209,88,.18)}
 input:focus,select:focus{outline:0;border-color:var(--acc)}
 label{display:block;font-size:11.5px;color:var(--dim);margin:11px 0 5px;
   text-transform:uppercase;letter-spacing:.7px;font-weight:600}
@@ -127,15 +127,15 @@ tr:last-child td{border-bottom:0}
 td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
 .tag{display:inline-block;font-size:10.5px;color:var(--dim);background:var(--card2);
   padding:2px 7px;border-radius:5px;margin-top:3px}
-.tag.ok{color:var(--acc);background:rgba(56,106,32,.12)}
-.tag.wn{color:var(--warn);background:rgba(138,92,0,.12)}
-.tag.bl{color:var(--blue);background:rgba(0,97,164,.12)}
+.tag.ok{color:var(--acc);background:rgba(48,209,88,.15)}
+.tag.wn{color:var(--warn);background:rgba(255,159,10,.15)}
+.tag.bl{color:var(--blue);background:rgba(10,132,255,.15)}
 .drop{border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;color:var(--dim)}
 .drop.hot{border-color:var(--acc);color:var(--acc)}
 .msg{padding:11px 13px;border-radius:10px;font-size:13.5px;margin-top:10px;display:none}
-.msg.s{background:rgba(56,106,32,.12);color:var(--acc);display:block}
-.msg.e{background:rgba(186,26,26,.12);color:var(--bad);display:block}
-.msg.i{background:rgba(0,97,164,.12);color:var(--blue);display:block}
+.msg.s{background:rgba(48,209,88,.15);color:var(--acc);display:block}
+.msg.e{background:rgba(255,69,58,.15);color:var(--bad);display:block}
+.msg.i{background:rgba(10,132,255,.15);color:var(--blue);display:block}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:flex-end}
 .sheet.on{display:flex}
 .sheet>div{background:var(--card);width:100%;max-width:520px;margin:0 auto;
@@ -145,13 +145,13 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-
 .mini{font-size:11.5px;color:var(--dim)}
 .spark{display:flex;align-items:flex-end;gap:3px;height:34px;margin-top:9px}
 .spark i{flex:1;background:var(--card2);border-radius:2px 2px 0 0;min-height:2px}
-.warnbox{background:rgba(138,92,0,.1);border:1px solid rgba(138,92,0,.3);
+.warnbox{background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.3);
   border-radius:11px;padding:12px;font-size:13px;color:var(--warn);margin-bottom:10px}
-.infobox{background:rgba(0,97,164,.1);border:1px solid rgba(0,97,164,.3);
+.infobox{background:rgba(10,132,255,.12);border:1px solid rgba(10,132,255,.3);
   border-radius:11px;padding:12px;font-size:13px;color:var(--blue);margin-bottom:10px}
 .thumb{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--card2)}
 .shot{width:100%;max-height:42vh;object-fit:contain;border-radius:12px;background:#000}
-.prog{height:6px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;margin-top:10px}
+.prog{height:6px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-top:10px}
 .prog>i{background:linear-gradient(90deg,var(--blue),var(--acc));background-size:200% 100%;animation:shimmer 1.4s linear infinite}
 .prog>i{display:block;height:100%;background:var(--blue);width:0;transition:width .2s}
 .cap{display:flex;gap:9px}
@@ -622,7 +622,7 @@ function floatAmount(x, y, text, colour){
    If it happens often it stops meaning anything. */
 function celebrate(){
   if(REDUCED) return;
-  const colours = ['#386a20','#0061a4','#8a5c00','#ba1a1a','#7d5db3'];
+  const colours = ['#30d158','#0a84ff','#ff9f0a','#ff453a','#bf5af2'];
   for(let i=0;i<44;i++){
     const c = document.createElement('i');
     const size = 6 + Math.random()*7;
