@@ -1,15 +1,25 @@
 # Budget
 
 A private, offline-first budget tracker. Receipt scanning and bank-statement parsing
-both run in the browser and are never uploaded. An account is optional — it only
-exists to sync your (end-to-end encrypted) data across your own devices.
+both run in the browser and are never uploaded.
+
+**Two pages, one site:**
+
+| File | What it is |
+|---|---|
+| `index.html` | The public front door — pitch, waitlist form, log in / create account. This is what `https://YOURNAME.github.io/budget/` shows. |
+| `app.html` | The actual app. Signing in or creating an account on `index.html` redirects here. Can also be opened directly. |
+
+An account is optional. By default, signing in syncs your data to the hosted server
+in the open — simple, nothing to remember. If you'd rather nobody but you could ever
+read it, Setup → Advanced has an opt-in end-to-end encrypted mode instead.
 
 ## Put it on GitHub Pages
 
 1. Go to **github.com/new**. Name it `budget`, set it to **Public**, click *Create repository*.
    (GitHub Pages only works from public repos on the free plan.)
 2. Click **uploading an existing file**, drag in *everything in this folder*:
-   `index.html`, `landing.html`, `manifest.json`, `sw.js`, and all six `icon-*.png` files.
+   `index.html`, `app.html`, `manifest.json`, `sw.js`, and all six `icon-*.png` files.
    Do **not** upload `budget-setup-PRIVATE.json` — it lives on your phone only.
 3. Click **Commit changes**.
 4. **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main`, folder `/ (root)` → **Save**.
@@ -17,7 +27,8 @@ exists to sync your (end-to-end encrypted) data across your own devices.
 
 ## Install on iPhone
 
-1. Open the URL in **Safari**. It must be Safari — Chrome on iOS cannot install web apps.
+1. Open the URL in **Safari** (must be Safari — Chrome on iOS cannot install web apps).
+   Works from either `index.html` or `app.html`; it always launches into the app.
 2. Tap the **Share** button (square with an arrow).
 3. Scroll down, tap **Add to Home Screen**, then **Add**.
 4. Launch it from the home screen. It opens full-screen with no browser bars.
@@ -28,6 +39,9 @@ Open the URL in Chrome. You should get an *Install app* prompt; if not,
 use ⋮ → **Add to Home screen**.
 
 ## First run
+
+Either sign in / create an account from the front page, or skip that entirely — the
+app works fully without one. If you're moving from an existing setup:
 
 1. Open **Budget** (bottom bar) → **Restore from backup** → pick `budget-setup-PRIVATE.json`.
    That loads your income, pay day, category targets, shortcut buttons and merchant rules.
@@ -58,8 +72,8 @@ Use **Export transactions (CSV)** if you want the numbers in a spreadsheet.
 ## Updating
 
 Re-upload the changed files to GitHub. The service worker caches aggressively, so
-bump `VERSION` at the top of `sw.js` (e.g. `v3` → `v4`) whenever you change
-`index.html`, otherwise phones may keep serving the old build.
+bump `VERSION` at the top of `sw.js` (e.g. `v17` → `v18`) whenever you change
+`index.html` or `app.html`, otherwise phones may keep serving the old build.
 
 ## Notes and limits
 

@@ -9,13 +9,16 @@
 
    Bump VERSION to force clients onto a new build.
    ============================================================ */
-const VERSION = 'v17';
+const VERSION = 'v19';
 const SHELL   = 'budget-shell-' + VERSION;
 const RUNTIME = 'budget-runtime-' + VERSION;
 
+/* index.html is now the marketing/signup front door; app.html is the actual
+   app. Both are precached so the whole site works offline once visited. */
 const SHELL_FILES = [
   './',
   './index.html',
+  './app.html',
   './manifest.json',
   './icon-152.png',
   './icon-167.png',
