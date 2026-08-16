@@ -211,8 +211,8 @@ a{color:var(--blue)}
   <div class="hero-grid">
     <div>
       <h1 class="reveal">Know exactly where your money went — without handing anyone your bank password.</h1>
-      <p class="lede reveal d2">Photograph your slips. Drop in your bank statement.
-      See what actually happened, down to the line item. Everything stays on your phone.</p>
+      <p class="lede reveal d2">Photograph your slips, drop in your bank statement — see exactly
+      where the money went. Everything stays on your phone.</p>
 
       <div style="height:30px"></div>
       <div class="grid two reveal d3">
@@ -263,20 +263,15 @@ a{color:var(--blue)}
   <div class="narrow">
     <div class="eyebrow reveal">The problem</div>
     <h2 class="reveal">Every other app wants your banking password.</h2>
-    <p class="reveal d1">That's how they work. Hand over your login, they read your accounts,
-    and you get neat categories back. Convenient — if you're comfortable with it.</p>
-    <p class="reveal d1">Plenty of people aren't. And even if you are, those apps still can't
-    see two things that matter:</p>
+    <p class="reveal d1">And even then, bank feeds still miss two things:</p>
     <div class="grid two" style="margin-top:26px">
       <div class="card reveal d1">
         <h3>&#128181; Cash</h3>
-        <p class="mini" style="margin:0">A bank feed can't see the R200 you spent at the market.
-        In South Africa that's a real hole, not a rounding error.</p>
+        <p class="mini" style="margin:0">The R200 you spent at the market. Invisible to any bank feed.</p>
       </div>
       <div class="card reveal d2">
         <h3>&#128722; What was in the basket</h3>
-        <p class="mini" style="margin:0">They show "Food Lovers R456.14". They never show that
-        R310 of it was groceries and R146 was household goods.</p>
+        <p class="mini" style="margin:0">"Food Lovers R456" — not R310 of groceries, R146 of household stuff.</p>
       </div>
     </div>
   </div>
@@ -292,20 +287,17 @@ a{color:var(--blue)}
       <div class="step reveal d1">
         <div class="num">1</div>
         <h3>Snap the slip</h3>
-        <p class="mini" style="margin:0">It reads the total, date, shop and the individual items —
-        then checks the items add up to the printed total, so you know whether to trust it.</p>
+        <p class="mini" style="margin:0">Reads the total, date, shop and items — checks they add up.</p>
       </div>
       <div class="step reveal d2">
         <div class="num">2</div>
         <h3>Drop in the statement</h3>
-        <p class="mini" style="margin:0">PDF or CSV from Capitec, FNB, Standard Bank, Absa or Nedbank.
-        Parsed on your phone, then discarded — never uploaded.</p>
+        <p class="mini" style="margin:0">PDF or CSV, any major SA bank. Parsed on your phone, never uploaded.</p>
       </div>
       <div class="step reveal d3">
         <div class="num">3</div>
         <h3>See what's left over</h3>
-        <p class="mini" style="margin:0">Slips get matched to statement lines automatically.
-        What doesn't match is the spending you never noticed.</p>
+        <p class="mini" style="margin:0">Slips match to statement lines. What doesn't match is what you missed.</p>
       </div>
     </div>
   </div>
@@ -316,8 +308,7 @@ a{color:var(--blue)}
   <div class="narrow">
     <div class="eyebrow reveal">A real example</div>
     <h2 class="reveal">Four months of one person's statements.</h2>
-    <p class="reveal d1">Actual output, reconciled to the cent against the bank's own totals.
-    Not a mock-up.</p>
+    <p class="reveal d1">Real output, reconciled to the cent. Not a mock-up.</p>
 
     <div class="grid three" style="margin-top:30px">
       <div class="card reveal d1" style="text-align:center">
@@ -347,8 +338,8 @@ a{color:var(--blue)}
       </table>
     </div>
 
-    <div class="q reveal">The money moved to savings on payday and came straight back over the
-    next three weeks. The statement said so all along. Nobody had added it up.</div>
+    <div class="q reveal">The money moved to savings on payday, then came straight back. The
+    statement said so all along.</div>
   </div>
 </section>
 
@@ -358,16 +349,12 @@ a{color:var(--blue)}
     <div class="eyebrow reveal">Your data</div>
     <h2 class="reveal">It lives on your phone. That's the architecture, not a slogan.</h2>
     <div class="card reveal d1" style="margin-top:22px">
-      <p><span class="dot"></span><b>No bank login, at any price.</b> The app cannot see
-      your accounts and never asks to.</p>
-      <p><span class="dot"></span><b>Statements are never uploaded.</b> Read in your phone's
-      memory, then the file is dropped.</p>
-      <p><span class="dot"></span><b>An account syncs your data to our server, in the open.</b>
-      That's what makes it available on your other devices with nothing to remember. There's no
-      end-to-end encrypted option right now — the server can technically read what's synced.</p>
-      <p style="margin:0"><span class="dot"></span><b>The honest trade-off:</b> without an account,
-      your data lives only on this device — lose the phone without a backup and it's gone. An account
-      fixes that, at the cost of trusting our server with it.</p>
+      <p><span class="dot"></span><b>No bank login, at any price.</b> The app can't see your accounts.</p>
+      <p><span class="dot"></span><b>Statements are never uploaded.</b> Read on your phone, then discarded.</p>
+      <p><span class="dot"></span><b>An account syncs to our server, in the open</b> — nothing to
+      remember, but no encryption yet, so we can technically read it.</p>
+      <p style="margin:0"><span class="dot"></span><b>The trade-off:</b> no account = data lives only
+      on this device. Account = synced, but trusted to our server.</p>
     </div>
   </div>
 </section>
@@ -377,8 +364,8 @@ a{color:var(--blue)}
   <div class="narrow">
     <div class="eyebrow reveal">Early access</div>
     <h2 class="reveal" id="signupTitle">Want early access?</h2>
-    <p class="reveal d1" id="signupBlurb">Built in South Africa, and it already works.
-    Leave your email and I'll tell you when it opens up.</p>
+    <p class="reveal d1" id="signupBlurb">Built in South Africa. Leave your email —
+    I'll let you know when it's ready.</p>
 
     <form id="form" class="card reveal d1" style="margin-top:24px">
       <label>I'm interested as a…</label>
@@ -418,8 +405,7 @@ a{color:var(--blue)}
     <div id="thanks" class="hide">
       <div style="font-size:40px">&#127881;</div>
       <h3 style="margin-top:12px;font-size:21px">You're on the list.</h3>
-      <p class="mini" style="margin:10px 0 0">I read every reply. Want to shape what gets built?
-      Reply to the confirmation email and tell me what you actually need.</p>
+      <p class="mini" style="margin:10px 0 0">I read every reply — hit reply and tell me what you need.</p>
     </div>
   </div>
 </section>
@@ -446,9 +432,8 @@ a{color:var(--blue)}
         financial-year periods, bookkeeper export and multiple users.</p>
       </div>
     </div>
-    <p class="mini reveal" style="margin-top:20px">Both come with a <b class="ok">30-day money-back guarantee</b> —
-    if it does not work for you, you get your money back, no argument. Indicative pricing while we test demand; early access members keep the
-    launch price for a year.</p>
+    <p class="mini reveal" style="margin-top:20px"><b class="ok">30-day money-back guarantee</b>, no
+    argument. Indicative pricing — early access keeps the launch price for a year.</p>
     <div style="height:30px"></div>
     <a href="#signup" class="btn reveal" style="max-width:340px">Get early access</a>
   </div>
@@ -684,12 +669,11 @@ document.querySelectorAll('.pathbtn').forEach(b => b.onclick = () => {
   const t = document.getElementById('signupTitle'), bl = document.getElementById('signupBlurb');
   if(chosenPath === 'business'){
     t.textContent = 'Get your slips out of the shoebox.';
-    bl.textContent = 'Photograph slips as they happen, import the statement at month end, and hand '
-      + 'your bookkeeper a clean file instead of a bag of paper.';
+    bl.textContent = 'Snap slips as they happen, import the statement at month end — hand your '
+      + 'bookkeeper a clean file, not a bag of paper.';
   } else {
     t.textContent = 'Find out where it actually goes.';
-    bl.textContent = 'Most people are surprised. Import a couple of statements and the pattern '
-      + 'shows up within minutes.';
+    bl.textContent = 'Import a couple of statements. The pattern shows up in minutes.';
   }
   try{ navigator.vibrate && navigator.vibrate(12); }catch(e){}
   document.getElementById('signup').scrollIntoView({behavior: REDUCED?'auto':'smooth'});
