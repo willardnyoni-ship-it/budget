@@ -10,9 +10,9 @@ both run in the browser and are never uploaded.
 | `index.html` | The public front door — pitch, waitlist form, log in / create account. This is what `https://YOURNAME.github.io/budget/` shows. |
 | `app.html` | The actual app. Signing in or creating an account on `index.html` redirects here. Can also be opened directly. |
 
-An account is optional. By default, signing in syncs your data to the hosted server
-in the open — simple, nothing to remember. If you'd rather nobody but you could ever
-read it, Setup → Advanced has an opt-in end-to-end encrypted mode instead.
+An account is optional. If you sign in, your data syncs to the hosted server in
+the open — simple, nothing to remember, but the operator's Supabase project can
+technically read it. There is currently no end-to-end encrypted option.
 
 ## Put it on GitHub Pages
 
