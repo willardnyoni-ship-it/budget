@@ -21,7 +21,7 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  /* Apple Wallet style — near-black surfaces, hairline dividers, restrained green accent */
+  /* Apple Wallet style - near-black surfaces, hairline dividers, restrained green accent */
   --bg:#000000; --card:#1c1c1e; --card2:#2c2c2e; --line:#38383a;
   --tx:#ffffff; --dim:#98989d; --acc:#30d158; --accC:#132a1a; --warn:#ff9f0a; --bad:#ff453a; --blue:#0a84ff;
   --safe:env(safe-area-inset-bottom,0px);
@@ -36,7 +36,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
 /* ============================================================
    Motion
    Every animation below is switched off entirely for anyone who
-   has asked their device to reduce motion. That is not a nicety —
+   has asked their device to reduce motion. That is not a nicety -
    for people with vestibular conditions, and for a lot of older
    users, unwanted movement is genuinely unpleasant.
    ============================================================ */
@@ -54,7 +54,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
 @keyframes fall{to{transform:translateY(105vh) rotate(var(--r))}}
 @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
-/* Cards arrive in sequence rather than all at once — reads as calm, not busy */
+/* Cards arrive in sequence rather than all at once - reads as calm, not busy */
 .tab.on .card, .tab.on .cat, .tab.on h2{animation:rise .42s var(--ease) both}
 .tab.on .card:nth-of-type(1){animation-delay:.02s}
 .tab.on .card:nth-of-type(2){animation-delay:.06s}
@@ -489,7 +489,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ============================================================
-   Budget — single file, offline, no accounts, no tracking.
+   Budget - single file, offline, no accounts, no tracking.
    Your data stays on this device. Nothing is uploaded, there is
    no account, and no analytics. Statement parsing and receipt OCR
    both run locally in the browser.
@@ -559,7 +559,7 @@ function load(){
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
-  catch(e){ alert('Could not save — storage may be full, or you are in private browsing.'); }
+  catch(e){ alert('Could not save - storage may be full, or you are in private browsing.'); }
 }
 
 /* ============================================================
@@ -573,7 +573,7 @@ function save(){
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* Count a money figure up to its new value. Ease-out so it decelerates
-   into place — a linear count feels mechanical. */
+   into place - a linear count feels mechanical. */
 function countTo(el, to, fmt){
   if(!el) return;
   fmt = fmt || (v => R(v));
@@ -593,7 +593,7 @@ function countTo(el, to, fmt){
 }
 
 /* A short tap you feel rather than see. Ignored on desktop and by iOS Safari,
-   which is fine — it is a bonus, never the only feedback. */
+   which is fine - it is a bonus, never the only feedback. */
 function buzz(ms){ try{ navigator.vibrate && navigator.vibrate(ms||12); }catch(e){} }
 
 /* Brief green ring on the element that just accepted an action */
@@ -601,7 +601,7 @@ function flashOk(el){ if(!el||REDUCED) return; el.classList.remove('saving');
   void el.offsetWidth; el.classList.add('saving');
   setTimeout(()=>el.classList.remove('saving'), 1100); }
 
-/* Shake for "that did not work" — universally understood, no reading required */
+/* Shake for "that did not work" - universally understood, no reading required */
 function shake(el){ if(!el||REDUCED) return; el.classList.remove('nudge');
   void el.offsetWidth; el.classList.add('nudge');
   setTimeout(()=>el.classList.remove('nudge'), 400); }
@@ -779,7 +779,7 @@ async function photoUrl(id){
 }
 
 /* ============================================================
-   Image handling — compress before storing (60-100 slips/month)
+   Image handling - compress before storing (60-100 slips/month)
    ============================================================ */
 async function toBitmap(file){
   if(window.createImageBitmap) return await createImageBitmap(file);
@@ -795,7 +795,7 @@ async function shrink(file, maxW, q){
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return await new Promise(r => c.toBlob(r, 'image/jpeg', q));
 }
-/* Greyscale + auto-levels copy purely for OCR — not stored.
+/* Greyscale + auto-levels copy purely for OCR - not stored.
    Deliberately does NOT hard-threshold: Tesseract binarises internally and
    does it better than a fixed cutoff, which wipes out dim or shadowed slips. */
 async function forOcr(file, scaleTo){
@@ -838,7 +838,7 @@ async function forOcr(file, scaleTo){
    ============================================================ */
 function loadScript(src){
   return new Promise((res,rej)=>{ const s = document.createElement('script');
-    s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Could not load OCR engine — check your connection the first time.'));
+    s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Could not load OCR engine - check your connection the first time.'));
     document.head.appendChild(s); });
 }
 async function runOcr(blob, onProg, psm){
@@ -1009,7 +1009,7 @@ const isLog  = t => !isStmt(t) && !t.mt;
 
 /* ============================================================
    Categorisation + FNB statement PDF parser  (verified 16/16
-   against the four Mar–Jul 2026 statements)
+   against the four Mar-Jul 2026 statements)
    ============================================================ */
 const MON  = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
 const NUM  = /^[\d,]+\.\d{2}$/;
@@ -1158,7 +1158,7 @@ async function parsePdf(file){
 /* ============================================================
    Device lock
 
-   A gate on this device, not encryption at rest — it stops someone picking up
+   A gate on this device, not encryption at rest - it stops someone picking up
    your unlocked phone and reading your finances, but a determined person with
    the handset and technical skill could still reach the underlying storage.
    Said plainly rather than overpromised.
@@ -1184,7 +1184,7 @@ async function setLock(){
   lockCfg = {salt:null};
   lockCfg.hash = await pinHash(a);
   lockCfg.on = true; saveLock(); render();
-  alert('Lock is on. You will be asked for this when you open the app.\n\nThere is no way to reset it — if you forget it you will need to erase and restore from a backup.');
+  alert('Lock is on. You will be asked for this when you open the app.\n\nThere is no way to reset it - if you forget it you will need to erase and restore from a backup.');
 }
 function clearLock(){
   if(!confirm('Turn the lock off? Anyone with this phone will be able to open the app.')) return;
@@ -1206,7 +1206,7 @@ async function tryUnlock(){
     lockCfg.failed = 0; saveLock();
   } else {
     lockCfg.failed = (lockCfg.failed||0) + 1; saveLock();
-    msg.textContent = 'Not right. ' + (lockCfg.failed > 4 ? 'Still no reset — restore from a backup if you are stuck.' : '');
+    msg.textContent = 'Not right. ' + (lockCfg.failed > 4 ? 'Still no reset - restore from a backup if you are stuck.' : '');
     document.getElementById('lockInput').value = '';
   }
 }
@@ -1214,13 +1214,13 @@ async function tryUnlock(){
 /* ============================================================
    Sync (Supabase)
 
-   Signing in syncs your data to the hosted project in the open — simple,
+   Signing in syncs your data to the hosted project in the open - simple,
    nothing to remember, works the moment you're signed in. Row-level
    security scopes each user to their own row; nobody else can reach it,
    but the operator of this Supabase project technically could query it.
    ============================================================ */
 const SYNC_KEY = 'wnSync_v1';
-/* Hosted backend — the operator's own Supabase project. The publishable
+/* Hosted backend - the operator's own Supabase project. The publishable
    key is safe to ship in this public file; RLS on the server is what
    actually scopes each user to their own rows, not secrecy of this key. */
 const HOSTED_SUPA_URL = 'https://pkbpmnpevxjrqjnepsjd.supabase.co';
@@ -1260,7 +1260,7 @@ function storeSession(d){
   syncCfg.userId = d.user && d.user.id;
   syncCfg.email = d.user && d.user.email;
   syncCfg.expires = Date.now() + ((d.expires_in || 3600) * 1000) - 60000;
-  /* Signing in is the only setup step for the default hosted path —
+  /* Signing in is the only setup step for the default hosted path -
      no separate "turn sync on" action to remember. */
   syncCfg.auto = true;
   saveSync();
@@ -1280,7 +1280,7 @@ async function signOut(){
   delete syncCfg.email; delete syncCfg.expires;
   saveSync(); clearInterval(_pollTimer); render();
 }
-/* Joining a household is idempotent — knowing the passphrase is what lets you in. */
+/* Joining a household is idempotent - knowing the passphrase is what lets you in. */
 async function joinHousehold(id, token){
   await fetch(syncCfg.url.replace(/\/+$/,'') + '/rest/v1/household_members',
     {method:'POST', headers:{apikey:syncCfg.key, Authorization:'Bearer '+token,
@@ -1324,7 +1324,7 @@ function mergeState(local, remote){
   return out;
 }
 
-/* Photos are deliberately excluded — they are large and stay on the device. */
+/* Photos are deliberately excluded - they are large and stay on the device. */
 function syncPayload(){
   const {flows, tx, cats, rules, shortcuts, members, splits, memory,
          achievements, windfall, income, cycleDay, weekly, method, savingsGoal,
@@ -1334,12 +1334,12 @@ function syncPayload(){
           savingsGoal, deleted, syncedAt};
 }
 
-/* Signing in is the only setup step — the room id is just the signed-in
+/* Signing in is the only setup step - the room id is just the signed-in
    user's id, and the payload is sent as plain JSON. Nothing to remember,
    sync works the moment you're signed in. */
 async function syncNow(silent){
   if(!syncCfg.url || !syncCfg.key) return;
-  if(!syncCfg.token){ if(!silent) alert('Sign in first — sync needs an account so only you can reach your data.'); return; }
+  if(!syncCfg.token){ if(!silent) alert('Sign in first - sync needs an account so only you can reach your data.'); return; }
   if(syncBusy) return;
   syncBusy = true;
   setSyncStatus('Syncing…');
@@ -1386,7 +1386,7 @@ function startPolling(){
 }
 
 /* ============================================================
-   11. Zero-based envelopes — every rand gets a job before it is spent
+   11. Zero-based envelopes - every rand gets a job before it is spent
    ============================================================ */
 function unallocated(){ return (S.income||0) - S.cats.reduce((a,c)=>a+c.t, 0); }
 function autoAllocate(){
@@ -1400,7 +1400,7 @@ function autoAllocate(){
 }
 
 /* ============================================================
-   12. Daily allowance — what today is actually worth
+   12. Daily allowance - what today is actually worth
    ============================================================ */
 function dailyAllowance(c, budTot, spent, fixedRem){
   const msDay = 86400000, now = new Date();
@@ -1463,7 +1463,7 @@ function settlements(){
 }
 
 /* ============================================================
-   15. Why this matters — plain-language context from YOUR numbers
+   15. Why this matters - plain-language context from YOUR numbers
    ============================================================ */
 function whyItMatters(catName, monthlySpend){
   const inc = S.income || 0;
@@ -1481,7 +1481,7 @@ function whyItMatters(catName, monthlySpend){
 }
 
 /* ============================================================
-   16. Milestones — noticed once, then left alone
+   16. Milestones - noticed once, then left alone
    ============================================================ */
 const MILESTONES = [
   {id:'first-import',  test:()=> S.tx.length > 0,
@@ -1533,7 +1533,7 @@ function checkMilestones(){
 }
 
 /* ============================================================
-   17. Windfall rule — decided in the cold light of day
+   17. Windfall rule - decided in the cold light of day
    ============================================================ */
 function windfallCandidates(){
   const w = S.windfall;
@@ -1549,7 +1549,7 @@ function applyWindfall(id, amount){
 }
 
 /* ============================================================
-   CSV statement parsers — Capitec, FNB, Standard Bank, Absa, Nedbank
+   CSV statement parsers - Capitec, FNB, Standard Bank, Absa, Nedbank
    Every SA bank exports a different shape. Rather than guess per bank,
    we sniff the header row for the columns we need, which also means an
    unrecognised bank still works if its headers are sane.
@@ -1675,7 +1675,7 @@ function render(){
   const isNow = cycleOffset === 0;
   document.getElementById('cycleTitle').textContent = isNow ? 'This month'
       : c.s.toLocaleDateString('en-ZA',{month:'long',year:'numeric'});
-  document.getElementById('periodLbl').textContent = fmtD(c.s) + ' – ' + fmtD(c.e);
+  document.getElementById('periodLbl').textContent = fmtD(c.s) + ' - ' + fmtD(c.e);
   document.getElementById('dayLbl').innerHTML = isNow ? 'Day ' + dayN + ' of ' + totalDays
     : '<a href="#" onclick="gotoCycle(0);return false" style="color:var(--blue);text-decoration:none">&#8617; Back to this month</a>';
   document.getElementById('cycleCount').textContent =
@@ -1684,7 +1684,7 @@ function render(){
 
   const fixedTot   = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+x.t,0);
   const fixedSpent = S.cats.filter(x=>x.fixed).reduce((a,x)=>a+(spentBy[x.n]||0),0);
-  /* Bills we know are coming but that have not hit yet — treat them as already spent. */
+  /* Bills we know are coming but that have not hit yet - treat them as already spent. */
   const due        = dueThisCycle(c, tx);
   const dueTot     = due.reduce((a,r)=>a+r.amount,0);
   const fixedRem   = Math.max(0, fixedTot - fixedSpent, dueTot);
@@ -1739,14 +1739,14 @@ function render(){
 
   const al = [];
   if(pct > dayN/totalDays*100 + 15 && spent > 0)
-    al.push('Burning faster than the calendar — ' + Math.round(pct) + '% of budget spent on day ' + dayN + ' of ' + totalDays + '.');
+    al.push('Burning faster than the calendar - ' + Math.round(pct) + '% of budget spent on day ' + dayN + ' of ' + totalDays + '.');
   S.cats.forEach(x=>{ const sp = spentBy[x.n]||0;
     if(x.t>0 && sp > x.t) al.push(x.n + ' is over by ' + R(sp-x.t) + '.'); });
   const dup = findDuplicates(tx);
   if(dup.length) al.push('Possible double charge: ' + dup[0]);
   let alertHtml = al.slice(0,3).map(m=>'<div class="warnbox">'+esc(m)+'</div>').join('');
 
-  /* Nothing yet this month is normal early in a cycle — one quiet line, not a wall of history. */
+  /* Nothing yet this month is normal early in a cycle - one quiet line, not a wall of history. */
   if(!tx.length && active.length && isNow){
     alertHtml = '<div class="mini" style="text-align:center;padding:4px 0 10px">Nothing spent yet this month · '
       + 'tap &#10094; or <a href="#" onclick="go(&quot;insight&quot;);return false" style="color:var(--blue)">Insights</a> for earlier months</div>'
@@ -1781,7 +1781,7 @@ function render(){
       + '<div class="card"><div class="row"><div class="mini">Week by week</div>'
       + '<div class="mini">even pace would be ' + R(target) + '/week</div></div>'
       + rows.map(r=>'<div style="margin-top:9px"><div class="row">'
-          + '<div class="mini">Week ' + (r.i+1) + ' · ' + r.from + '–' + r.to + '</div>'
+          + '<div class="mini">Week ' + (r.i+1) + ' · ' + r.from + '-' + r.to + '</div>'
           + '<div class="mono" style="font-weight:600;font-size:13px">' + R(r.sp) + '</div></div>'
           + '<div class="bar"><i style="width:' + (r.sp/mx*100) + '%;background:'
           + (r.sp>target*1.25?'var(--bad)':r.sp>target?'var(--warn)':'var(--acc)') + '"></i></div></div>').join('')
@@ -1842,7 +1842,7 @@ function render(){
         +'<button class="b" style="width:auto;padding:11px 14px" onclick="autoAllocate()">Assign rest</button></div>'
         +'<div class="mini" style="margin-top:6px">'
         +(Math.abs(u)<1 ? 'Every rand has a job.' : u>0 ? 'Give this money a purpose before the month starts.'
-          : 'You have allocated more than you earn — trim a category.')+'</div></div>';
+          : 'You have allocated more than you earn - trim a category.')+'</div></div>';
     } else zb.innerHTML='';
   }
   const as=document.getElementById('authStatus');
@@ -1927,7 +1927,7 @@ function findDuplicates(tx){
     if(seen.has(k)){
       const p = seen.get(k);
       if(Math.abs(dayDiff(t.d, p.d)) <= 31 && t.a >= 100)
-        out.push((t.note||t.c) + ' — ' + R2(t.a) + ' twice (' + p.d + ' and ' + t.d + ')');
+        out.push((t.note||t.c) + ' - ' + R2(t.a) + ' twice (' + p.d + ' and ' + t.d + ')');
     } else seen.set(k, t);
   }
   return out;
@@ -2108,7 +2108,7 @@ function viewRecurring(){
   let h = '<div class="card"><div class="row"><div><div class="mini">Repeating charges</div>'
     + '<div class="mono" style="font-size:23px;font-weight:700">'+R(monthly)+'<span style="font-size:14px;color:var(--dim)">/mo</span></div></div>'
     + '<div style="text-align:right"><div class="mini">Committed</div><div class="mono" style="font-size:23px;font-weight:700">'
-    + (S.income? Math.round(monthly/S.income*100)+'%' : '—') + '</div></div></div>'
+    + (S.income? Math.round(monthly/S.income*100)+'%' : '-') + '</div></div></div>'
     + '<div class="mini" style="margin-top:6px">This is what leaves your account whether you act or not.</div></div>';
   h += '<div class="card"><table>' + r.map(x=>
       '<tr><td>'+esc(x.name)+'<div class="tag">'+esc(x.cat)+' &middot; around the '+x.day+'th &middot; seen in '+x.months+' months</div></td>'
@@ -2118,7 +2118,7 @@ function viewRecurring(){
 
 function viewSavings(){
   const f = S.flows || [];
-  if(!f.length) return '<div class="card mini">No savings movements found yet. Import a statement — transfers to and from your savings or investment account are picked up automatically.</div>';
+  if(!f.length) return '<div class="card mini">No savings movements found yet. Import a statement - transfers to and from your savings or investment account are picked up automatically.</div>';
   const by = {};
   f.forEach(x=>{ const m=x.d.slice(0,7); (by[m]=by[m]||{in:0,out:0});
     if(x.dir==='out') by[m].out+=x.a; else by[m].in+=x.a; });
@@ -2186,7 +2186,7 @@ async function doSignUp(){
     else alert('Account created. Check your email to confirm, then sign in.\n\n(You can turn confirmation off in Supabase → Authentication → Providers → Email.)');
   }catch(err){ alert(err.message); }
 }
-/* Self-service reset — nobody, including us, can look up or restore a password.
+/* Self-service reset - nobody, including us, can look up or restore a password.
    This sends a one-time link instead. redirect_to must be on the project's
    allowed Redirect URLs list in Supabase, or the link will fail. */
 async function doForgotPassword(){
@@ -2225,7 +2225,7 @@ function renderMatch(){
 
   if(!stmt.length){
     el.innerHTML = '<div class="infobox">No statement imported for this period yet. '
-      + 'Log slips as you spend, then import the FNB PDF at month end — everything gets matched up here.</div>'
+      + 'Log slips as you spend, then import the FNB PDF at month end - everything gets matched up here.</div>'
       + '<div class="card"><div class="row"><div>Slips logged, awaiting a statement</div>'
       + '<div class="mono" style="font-weight:700">'+logged.length+'</div></div>'
       + '<div class="mini" style="margin-top:6px">Worth '+R2(logged.reduce((a,t)=>a+t.a,0))+'</div></div>';
@@ -2291,7 +2291,7 @@ function recategorise(opts){
   /* make sure every resulting category exists as a budget line */
   for(const t of S.tx) if(!S.cats.some(c=>c.n===t.c)) S.cats.push({n:t.c, t:0});
   save(); render();
-  if(!silent) alert(changed ? 'Recategorised ' + changed + ' transaction(s).' : 'Nothing changed — every transaction already matches your rules.');
+  if(!silent) alert(changed ? 'Recategorised ' + changed + ' transaction(s).' : 'Nothing changed - every transaction already matches your rules.');
   return changed;
 }
 
@@ -2334,7 +2334,7 @@ function quick(i, ev){
     const r = ev.target.getBoundingClientRect();
     floatAmount(r.left + r.width/2, r.top, '−' + R(s.a), 'var(--warn)');
   }
-  flash('snapMsg','s', s.l + ' — ' + R2(s.a) + ' logged');
+  flash('snapMsg','s', s.l + ' - ' + R2(s.a) + ' logged');
   setTimeout(()=>go('today'), 260);          /* let the amount finish floating */
 }
 function add(o){
@@ -2393,7 +2393,7 @@ function catSheet(name){
          return bits.length ? '<div class="infobox" style="margin-top:12px"><b>Why this matters</b><br>'
            + bits.map(esc).join('<br>') + '</div>' : ''; })()
     + '<div class="card" style="margin-top:14px"><table>'
-    + (list.length ? list.map(t=>'<tr><td>'+esc(t.note||'—')+'<div class="tag">'+t.d+'</div></td><td class="r">'+R2(t.a)+'</td></tr>').join('')
+    + (list.length ? list.map(t=>'<tr><td>'+esc(t.note||'-')+'<div class="tag">'+t.d+'</div></td><td class="r">'+R2(t.a)+'</td></tr>').join('')
                    : '<tr><td class="mini">Nothing here this cycle.</td></tr>')
     + '</table></div>');
 }
@@ -2592,8 +2592,8 @@ async function snap(file){
     const {r, thumb} = await readSlip(file, onProg);
     prog.style.display = 'none';
     if(!r.readable){
-      /* Fully unreadable — go straight to manual entry rather than an empty form. */
-      flash('snapMsg','wn','Could not read that slip. Enter it yourself — the photo is kept.');
+      /* Fully unreadable - go straight to manual entry rather than an empty form. */
+      flash('snapMsg','wn','Could not read that slip. Enter it yourself - the photo is kept.');
       manualWithPhoto(thumb, r);
       return;
     }
@@ -2623,7 +2623,7 @@ async function snapBatch(files){
   prog.style.display = 'none';
   const good = batchQueue.filter(x=>x.r.readable).length;
   flash('snapMsg', good ? 's' : 'e',
-    'Read ' + good + ' of ' + n + ' slip' + (n===1?'':'s') + (good<n ? ' — the rest need typing in' : ''));
+    'Read ' + good + ' of ' + n + ' slip' + (n===1?'':'s') + (good<n ? ' - the rest need typing in' : ''));
   batchSheet();
 }
 
@@ -2642,7 +2642,7 @@ function batchSheet(){
         return '<tr><td onclick="batchEdit('+i+')" style="cursor:pointer">'
              + '<div style="font-weight:600">' + esc(r.merchant || 'Unknown shop') + '</div>'
              + '<div class="tag">' + esc(r.cat) + ' · ' + r.date + '</div> ' + state + '</td>'
-             + '<td class="r">' + (r.total!=null ? R2(r.total) : '—')
+             + '<td class="r">' + (r.total!=null ? R2(r.total) : '-')
              + '<div class="mini" style="font-weight:400">'
              + '<label><input type="checkbox" ' + (x.keep?'checked':'') + ' onchange="batchToggle('+i+',this.checked)"> keep</label>'
              + '</div></td></tr>'; }).join('')
@@ -2699,7 +2699,7 @@ function confirmSheet(r, thumb, batchIdx){
         + R2(rec.sum) + ' vs printed ' + R2(r.total) + '. This read is almost certainly right.</div></div>'
       : _pendingItems.length
         ? '<div class="warnbox">Items come to ' + R2(rec.sum) + ' but the slip says ' + R2(r.total)
-          + ' — out by ' + R2(Math.abs(rec.diff)) + '. Check the highlighted lines.</div>'
+          + ' - out by ' + R2(Math.abs(rec.diff)) + '. Check the highlighted lines.</div>'
         : '<div class="infobox">Read the total from ' + esc(r.how) + ', but could not pick out individual items.</div>';
 
   openSheet(
@@ -2717,7 +2717,7 @@ function confirmSheet(r, thumb, batchIdx){
 }
 
 /* Confident lines render as plain text and stay locked. Only the uncertain ones
-   are editable up front — tap any locked line to unlock it. */
+   are editable up front - tap any locked line to unlock it. */
 function itemsHtml(){
   if(!_pendingItems.length) return '';
   const low = _pendingItems.filter(i=>i.conf!=null && i.conf < LOW_CONF).length;
@@ -2784,7 +2784,7 @@ async function saveSlip(){
     items: _pendingItems
   };
   if(_batchIdx !== null){
-    /* editing one slip inside a batch — update it, do not save yet */
+    /* editing one slip inside a batch - update it, do not save yet */
     const x = batchQueue[_batchIdx];
     x.r.total = a; x.r.cat = payload.c; x.r.merchant = payload.note;
     x.r.date = payload.d; x.r.items = _pendingItems; x.r.readable = true;
@@ -2796,7 +2796,7 @@ async function saveSlip(){
                   _pendingThumb, payload);
   _pendingThumb = null; _pendingItems = [];
   closeSheet(); render();
-  flash('snapMsg','s','Slip saved — '+R2(a));
+  flash('snapMsg','s','Slip saved - '+R2(a));
   go('today');
 }
 
@@ -2877,10 +2877,10 @@ function renderImportPreview(r, pairs, byCat, tot){
   document.getElementById('impResult').innerHTML =
         '<div class="card"><div class="row"><div style="font-weight:700">'+pending.length+' new statement lines</div>'
       + '<div class="mono" style="font-weight:700">'+R2(tot)+'</div></div>'
-      + '<div class="mini" style="margin-top:4px">Credits, transfers between your own accounts and payments to Investment were excluded — they are not spending.</div>'
+      + '<div class="mini" style="margin-top:4px">Credits, transfers between your own accounts and payments to Investment were excluded - they are not spending.</div>'
       + (pairs.length ? '<div class="infobox" style="margin-top:11px">'+pairs.length+' of these already match slips you logged. They will be folded together, not double-counted.</div>' : '')
       + ((pendingFlows&&pendingFlows.length) ? '<div class="infobox" style="margin-top:11px">'+pendingFlows.length
-          +' savings movement(s) also found — these are tracked separately under Insights, not counted as spending.</div>' : '')
+          +' savings movement(s) also found - these are tracked separately under Insights, not counted as spending.</div>' : '')
       + '<table style="margin-top:10px">'
       + Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>
           '<tr><td>'+esc(k)+'</td><td class="r">'+R(v)+'</td></tr>').join('')
@@ -2901,7 +2901,7 @@ function commit(){
   });
   if(pendingFlows && pendingFlows.length){ S.flows = (S.flows||[]).concat(pendingFlows); }
   const n = pending.length; pending = null; pendingFlows = null;
-  /* The statement file itself is never stored — it is parsed in memory and the
+  /* The statement file itself is never stored - it is parsed in memory and the
      reference dropped here. Nothing of it survives on disk or leaves the device. */
   lastStatement = null;
   const fin = document.getElementById('file'); if(fin) fin.value = '';
@@ -2912,7 +2912,7 @@ function commit(){
 }
 
 /* ============================================================
-   Setup from a bank statement — same parser as the Statements tab,
+   Setup from a bank statement - same parser as the Statements tab,
    used read-only here. Nothing is written to S.tx; it only suggests
    income, pay day and category targets for you to review and adjust.
    ============================================================ */
@@ -2947,8 +2947,8 @@ async function handleSetupCsv(f){
 }
 function showSetupSuggestions(r){
   /* Income: credits the parser already flags as income (salary-shaped
-     wording). If none match — a real risk on banks/wording the built-in
-     rule doesn't know yet — fall back to the single largest credit,
+     wording). If none match - a real risk on banks/wording the built-in
+     rule doesn't know yet - fall back to the single largest credit,
      which is usually the salary. Either way it's just a starting
      suggestion; nothing saves until Save this setup is tapped. */
   let incomeRows = (r.skipped||[]).filter(x => x.kind === 'income');
@@ -2963,7 +2963,7 @@ function showSetupSuggestions(r){
   const suggestDay = bestDay ? +bestDay[0] : (S.cycleDay || 1);
 
   /* Categories: what this statement shows was actually spent, per
-     category — a real starting target, not a guess. */
+     category - a real starting target, not a guess. */
   const byCat = {};
   r.tx.forEach(t => byCat[t.c] = (byCat[t.c]||0) + t.a);
   const rows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
@@ -3072,7 +3072,7 @@ function applySetup(d){
   if(!d || typeof d !== 'object') return alert('That setup could not be read.');
   const keepTx = S.tx || [];
   S = Object.assign(structuredClone(DEFAULTS), d);
-  /* A setup file carries settings but no history — never wipe transactions you already have. */
+  /* A setup file carries settings but no history - never wipe transactions you already have. */
   if((!d.tx || !d.tx.length) && keepTx.length) S.tx = keepTx;
   save();
   const n = recategorise({silent:true});
@@ -3117,7 +3117,7 @@ if(!S.tx.length && !S.income){
     + 'or restore your setup file there to load your categories, targets and shortcuts in one go.</div>';
 }
 /* Arriving fresh from the landing page after logging in or creating an
-   account — sync already ran automatically (see storeSession/doSignIn),
+   account - sync already ran automatically (see storeSession/doSignIn),
    so just show them where they landed. */
 if(new URLSearchParams(location.search).get('onboard') === '1'){
   go('setup');
