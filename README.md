@@ -1,14 +1,15 @@
 # Budget
 
-A private, offline budget tracker. Receipt scanning and bank-statement parsing both
-run in the browser — nothing is uploaded, there is no account and no analytics.
+A private, offline-first budget tracker. Receipt scanning and bank-statement parsing
+both run in the browser and are never uploaded. An account is optional — it only
+exists to sync your (end-to-end encrypted) data across your own devices.
 
 ## Put it on GitHub Pages
 
 1. Go to **github.com/new**. Name it `budget`, set it to **Public**, click *Create repository*.
    (GitHub Pages only works from public repos on the free plan.)
 2. Click **uploading an existing file**, drag in *everything in this folder*:
-   `index.html`, `manifest.json`, `sw.js`, and all six `icon-*.png` files.
+   `index.html`, `landing.html`, `manifest.json`, `sw.js`, and all six `icon-*.png` files.
    Do **not** upload `budget-setup-PRIVATE.json` — it lives on your phone only.
 3. Click **Commit changes**.
 4. **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main`, folder `/ (root)` → **Save**.
