@@ -308,15 +308,21 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   <div class="sub">Income, pay day and category targets.</div>
 
   <div class="card" id="setupCard">
-    <div class="row" style="margin-bottom:10px">
-      <div style="font-weight:700">Load your setup</div>
-      <div class="mini" id="setupState"></div>
+    <div style="font-weight:700;margin-bottom:8px">Set up from a bank statement</div>
+    <div class="mini" style="margin-bottom:10px">Drop in a statement and we'll work out your income, pay day
+    and spending categories from it &mdash; you review and adjust everything before it saves. Parsed on your
+    phone; the file itself is never uploaded or stored.</div>
+    <div class="drop" id="setupDrop">
+      <div style="font-size:32px">&#128196;</div>
+      <div style="margin-top:8px;font-weight:600">Tap to choose a statement</div>
+      <div class="mini" style="margin-top:4px">FNB PDF, or a CSV from any of the big five</div>
+      <input type="file" id="setupFile" accept="application/pdf" style="display:none">
     </div>
-    <button class="b" onclick="pasteSetup()">Paste setup text</button>
     <div style="height:8px"></div>
-    <button class="b g" onclick="document.getElementById('impJson').click()">Choose a setup file</button>
-    <div class="mini" style="margin-top:9px">Loads your income, pay day, targets, shortcuts and merchant rules.
-    Pasting is easier on a phone &mdash; email the file to yourself, open it, copy all the text, then tap Paste.</div>
+    <button class="b g" onclick="document.getElementById('setupCsvIn').click()">Use a CSV instead</button>
+    <input type="file" id="setupCsvIn" accept=".csv,.txt,text/csv,text/plain" style="display:none">
+    <div class="msg" id="setupMsg"></div>
+    <div id="setupResult"></div>
   </div>
 
   <div class="card">
@@ -2902,6 +2908,96 @@ function commit(){
   save(); render();
   flash('impMsg','s', n + ' statement lines added. Check the Match tab.');
   go('match');
+}
+
+/* ============================================================
+   Setup from a bank statement — same parser as the Statements tab,
+   used read-only here. Nothing is written to S.tx; it only suggests
+   income, pay day and category targets for you to review and adjust.
+   ============================================================ */
+const setupDrop = document.getElementById('setupDrop'), setupFileEl = document.getElementById('setupFile');
+if(setupDrop){
+  setupDrop.onclick = () => setupFileEl.click();
+  ['dragenter','dragover'].forEach(e=> setupDrop.addEventListener(e, ev=>{ ev.preventDefault(); setupDrop.classList.add('hot'); }));
+  ['dragleave','drop'].forEach(e=> setupDrop.addEventListener(e, ev=>{ ev.preventDefault(); setupDrop.classList.remove('hot'); }));
+  setupDrop.addEventListener('drop', ev=>{ const f = ev.dataTransfer.files[0]; if(f) handleSetupFile(f); });
+  setupFileEl.onchange = e => { const f = e.target.files[0]; if(f) handleSetupFile(f); e.target.value=''; };
+  document.getElementById('setupCsvIn').onchange = e => { const f = e.target.files[0]; if(f) handleSetupCsv(f); e.target.value=''; };
+}
+async function handleSetupFile(f){
+  flash('setupMsg','i','Reading ' + f.name + ' …');
+  document.getElementById('setupResult').innerHTML = '';
+  try{
+    const r = await parsePdf(f);
+    if(!r.tx.length) return flash('setupMsg','e','No spending transactions found. Is this an FNB statement PDF rather than a screenshot?');
+    showSetupSuggestions(r);
+  }catch(err){ console.error(err); flash('setupMsg','e','Could not read that file: ' + err.message); }
+}
+async function handleSetupCsv(f){
+  flash('setupMsg','i','Reading ' + f.name + ' …');
+  document.getElementById('setupResult').innerHTML = '';
+  try{
+    const text = await f.text();
+    const r = parseCsv(text);
+    if(r.error) return flash('setupMsg','e', r.error);
+    if(!r.tx.length) return flash('setupMsg','e','No spending rows found in that CSV.');
+    showSetupSuggestions(r);
+  }catch(err){ console.error(err); flash('setupMsg','e','Could not read that file: ' + err.message); }
+}
+function showSetupSuggestions(r){
+  /* Income: credits the parser already flags as income (salary-shaped
+     wording). If none match — a real risk on banks/wording the built-in
+     rule doesn't know yet — fall back to the single largest credit,
+     which is usually the salary. Either way it's just a starting
+     suggestion; nothing saves until Save this setup is tapped. */
+  let incomeRows = (r.skipped||[]).filter(x => x.kind === 'income');
+  if(!incomeRows.length){
+    const credits = (r.skipped||[]).filter(x => x.cr);
+    if(credits.length) incomeRows = [credits.reduce((a,b)=> b.a > a.a ? b : a)];
+  }
+  const incomeTotal = incomeRows.reduce((a,x)=>a+x.a, 0);
+  const dayCounts = {};
+  incomeRows.forEach(x => { const day = +x.d.slice(8,10); if(day) dayCounts[day] = (dayCounts[day]||0) + 1; });
+  const bestDay = Object.entries(dayCounts).sort((a,b)=>b[1]-a[1])[0];
+  const suggestDay = bestDay ? +bestDay[0] : (S.cycleDay || 1);
+
+  /* Categories: what this statement shows was actually spent, per
+     category — a real starting target, not a guess. */
+  const byCat = {};
+  r.tx.forEach(t => byCat[t.c] = (byCat[t.c]||0) + t.a);
+  const rows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+
+  document.getElementById('setupResult').innerHTML =
+      '<div class="card" style="margin-top:12px">'
+    + '<div style="font-weight:700;margin-bottom:8px">What we found</div>'
+    + '<label>Monthly income (R)</label>'
+    + '<input id="ssIncome" type="number" inputmode="decimal" value="'+Math.round(incomeTotal||S.income||0)+'">'
+    + '<label>Pay day (day of month)</label>'
+    + '<input id="ssDay" type="number" min="1" max="28" value="'+suggestDay+'">'
+    + '<div class="mini" style="margin:10px 0 6px">Category targets, from what this statement shows you actually spent:</div>'
+    + rows.map(([n,t])=>
+        '<div class="row" style="margin-bottom:7px">'
+        + '<div style="flex:1">'+esc(n)+'</div>'
+        + '<input data-cat="'+esc(n)+'" class="ssCat" type="number" inputmode="decimal" style="max-width:110px" value="'+Math.round(t)+'">'
+        + '</div>').join('')
+    + (rows.length ? '' : '<div class="mini">No categorised spending found in this statement.</div>')
+    + '<div style="height:8px"></div>'
+    + '<button class="b" onclick="applySetupSuggestions()">Save this setup</button>'
+    + '<div class="mini" style="margin-top:8px">You can fine-tune any of this later under Targets below.</div>'
+    + '</div>';
+}
+function applySetupSuggestions(){
+  const income = +((document.getElementById('ssIncome')||{}).value) || 0;
+  const day = Math.min(28, Math.max(1, +((document.getElementById('ssDay')||{}).value) || 1));
+  S.income = income; S.cycleDay = day;
+  document.querySelectorAll('.ssCat').forEach(inp=>{
+    const name = inp.dataset.cat, t = +inp.value || 0;
+    const existing = S.cats.find(c=>c.n===name);
+    if(existing) existing.t = t; else S.cats.push({n:name, t});
+  });
+  save(); render();
+  document.getElementById('setupResult').innerHTML = '';
+  flash('setupMsg','s','Setup saved from your statement.');
 }
 
 /* Fold matched slips into their statement lines: statement amount wins,
