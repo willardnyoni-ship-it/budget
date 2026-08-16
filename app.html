@@ -98,8 +98,9 @@ h2{font-size:13px;margin:22px 0 9px;color:var(--dim);text-transform:uppercase;le
 .nav button{flex:1;background:none;border:0;color:var(--dim);padding:10px 1px 8px;
   font-size:9.5px;font-family:inherit;font-weight:600;letter-spacing:.1px;position:relative}
 .nav button.on{color:var(--acc)}
-.nav button div{font-size:20px;line-height:1.15;transition:transform .22s var(--pop)}
-.nav button.on div{transform:translateY(-2px) scale(1.14);background:rgba(48,209,88,.18);border-radius:16px;padding:2px 14px;width:fit-content;margin:0 auto}
+.nav button div{line-height:1.15;transition:transform .22s var(--pop);width:fit-content;margin:0 auto;padding:3px 12px;border-radius:14px}
+.nav button div svg{width:21px;height:21px;display:block;stroke:currentColor}
+.nav button.on div{transform:translateY(-2px) scale(1.1);background:rgba(48,209,88,.16)}
 .nav .dot{position:absolute;top:6px;right:calc(50% - 17px);width:8px;height:8px;
   border-radius:99px;background:var(--warn);display:none}
 .nav .dot.on{display:block}
@@ -459,11 +460,11 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 </div>
 
 <nav class="nav">
-  <button class="on" data-t="today"><div>&#9679;</div>Today</button>
-  <button data-t="snap"><div>&#128247;</div>Snap</button>
-  <button data-t="stmt"><div>&#8644;</div>Statements<span class="dot" id="matchDot"></span></button>
-  <button data-t="insight"><div>&#9650;</div>Insights</button>
-  <button data-t="setup"><div>&#9636;</div>Setup</button>
+  <button class="on" data-t="today"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg></div>Today</button>
+  <button data-t="snap"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg></div>Snap</button>
+  <button data-t="stmt"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M14 5l3 3-3 3M20 16H7M10 13l-3 3 3 3"/></svg></div>Statements<span class="dot" id="matchDot"></span></button>
+  <button data-t="insight"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V10M12 19V5M19 19v-7"/></svg></div>Insights</button>
+  <button data-t="setup"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.5-2-3.4-2.4 1a7.6 7.6 0 00-1.7-1L15 3h-6l-.3 2.6a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.4L4.6 11a7.6 7.6 0 000 2l-2 1.5 2 3.4 2.4-1a7.6 7.6 0 001.7 1L9 21h6l.3-2.6a7.6 7.6 0 001.7-1l2.4 1 2-3.4z"/></svg></div>Setup</button>
 </nav>
 
 <div id="lockScreen" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);
