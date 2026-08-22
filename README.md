@@ -69,6 +69,40 @@ Clearing Safari website data, or losing the phone, loses the lot.
 Photos are stored separately in IndexedDB and are *not* in the JSON backup.
 Use **Export transactions (CSV)** if you want the numbers in a spreadsheet.
 
+## Khanyiso (in-app assistant)
+
+[#khanyiso](#khanyiso)
+
+A chat button in the bottom-right lets signed-in users ask Khanyiso questions
+about their own budget - spending, categories, trends, what's over budget,
+and so on. Khanyiso only ever sees a summary of that one user's own data,
+and is instructed to refuse financial advice (investment, tax, "should I"
+money decisions) and point people to a licensed advisor instead.
+
+**Why sign-in is required:** the chat is answered by a real AI model, which
+costs money per request. Requiring a Supabase-authenticated user stops
+random visitors from running up your bill. It also means Khanyiso is
+answering from that person's own synced data, not a stranger's.
+
+**One-time setup, before this works:**
+
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com).
+2. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) and log in:
+   `supabase login`
+3. Link it to your project (find the ref in your Supabase dashboard URL):
+   `supabase link --project-ref YOUR_PROJECT_REF`
+4. Set your API key as a secret - this never touches the public repo:
+   `supabase secrets set ANTHROPIC_API_KEY=sk-ant-...`
+5. Deploy the function:
+   `supabase functions deploy khanyiso-chat`
+6. That's it - `app.html` already calls it at `/functions/v1/khanyiso-chat`
+   using the signed-in user's own token.
+
+The function code lives in `supabase/functions/khanyiso-chat/index.ts`. It's
+the only place the API key exists; it's never shipped to the browser. Costs
+are per message sent (capped at a short reply length and a trimmed chat
+history to keep them predictable) and billed to your Anthropic account.
+
 ## Updating
 
 Re-upload the changed files to GitHub. The service worker caches aggressively, so
