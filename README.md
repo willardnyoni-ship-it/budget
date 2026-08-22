@@ -79,29 +79,44 @@ and so on. Khanyiso only ever sees a summary of that one user's own data,
 and is instructed to refuse financial advice (investment, tax, "should I"
 money decisions) and point people to a licensed advisor instead.
 
-**Why sign-in is required:** the chat is answered by a real AI model, which
-costs money per request. Requiring a Supabase-authenticated user stops
-random visitors from running up your bill. It also means Khanyiso is
-answering from that person's own synced data, not a stranger's.
+**Why sign-in is required:** Khanyiso runs on Google's free-tier API, which
+has a shared rate limit across every user of the app. Requiring a
+Supabase-authenticated user stops random visitors from burning through that
+shared quota. It also means Khanyiso is answering from that person's own
+synced data, not a stranger's.
+
+**Worth knowing:** on Gemini's free tier, Google's terms allow prompts and
+responses to be used to improve their products - unlike their paid tier.
+That's a real trade-off against this app's "your data stays on this
+device" promise: budget summaries sent to Khanyiso leave that boundary.
+Switch to a paid tier (or another provider) later if that matters to you
+as the app grows.
 
 **One-time setup, before this works:**
 
-1. Get an API key from [console.anthropic.com](https://console.anthropic.com).
+1. Get a free API key at [aistudio.google.com](https://aistudio.google.com)
+   (Google AI Studio) - no credit card needed.
 2. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) and log in:
    `supabase login`
 3. Link it to your project (find the ref in your Supabase dashboard URL):
    `supabase link --project-ref YOUR_PROJECT_REF`
 4. Set your API key as a secret - this never touches the public repo:
-   `supabase secrets set ANTHROPIC_API_KEY=sk-ant-...`
+   `supabase secrets set GEMINI_API_KEY=AIza...`
 5. Deploy the function:
    `supabase functions deploy khanyiso-chat`
 6. That's it - `app.html` already calls it at `/functions/v1/khanyiso-chat`
    using the signed-in user's own token.
 
+(Prefer no CLI? Supabase Dashboard -> Edge Functions -> Create a function,
+paste in the code from `supabase/functions/khanyiso-chat/index.ts`, add the
+`GEMINI_API_KEY` secret under Manage secrets, then Deploy.)
+
 The function code lives in `supabase/functions/khanyiso-chat/index.ts`. It's
-the only place the API key exists; it's never shipped to the browser. Costs
-are per message sent (capped at a short reply length and a trimmed chat
-history to keep them predictable) and billed to your Anthropic account.
+the only place the API key exists; it's never shipped to the browser.
+There's no per-message cost on the free tier, but usage is capped at a
+shared rate limit (roughly 10-15 requests/minute across all your users
+depending on the model) - fine for a small beta, worth revisiting if the
+app grows.
 
 ## Updating
 
