@@ -1,19 +1,27 @@
-// Khanyiso - the in-app assistant. Deploy with:
+// Khanyiso - the in-app assistant. Deploy by pasting this into
+// Supabase Dashboard -> Edge Functions -> khanyiso-chat, or via CLI:
 //   supabase functions deploy khanyiso-chat
 // and set the secret with:
-//   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+//   supabase secrets set GEMINI_API_KEY=AIza...
 //
-// This function is the ONLY place the Anthropic API key lives. It is never
+// Uses Google's Gemini API free tier (no credit card, no per-message cost
+// to you) instead of a paid API. Note: on the free tier, Google's terms
+// allow prompts/responses to be used to improve their products - unlike
+// their paid tier. Worth knowing given this app's "your data stays on
+// this device" promise; budget summaries sent to Khanyiso leave that
+// boundary. Get a key at https://aistudio.google.com (Google AI Studio).
+//
+// This function is the ONLY place the Gemini API key lives. It is never
 // shipped in app.html or any client file. The client sends chat messages
 // plus a small summary of the signed-in user's own budget data; this
 // function checks the caller is a real signed-in user (via their Supabase
-// auth token) before spending your API credit, then relays the request to
-// Claude with a system prompt that keeps Khanyiso on-topic and away from
-// financial advice.
+// auth token) before spending free-tier quota, then relays the request to
+// Gemini with a system prompt that keeps Khanyiso on-topic, restricted to
+// the user's own in-app data, and away from financial advice.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -28,9 +36,11 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const MODEL = "claude-sonnet-5"; // swap to "claude-haiku-4-5-20251001" if you want a cheaper/faster model
-const MAX_TOKENS = 700;
-const MAX_HISTORY_MESSAGES = 16; // caps how much of the conversation we forward, for cost control
+// gemini-2.5-flash-lite has the highest free-tier request allowance if
+// you outgrow gemini-2.5-flash's daily/per-minute limits.
+const MODEL = "gemini-2.5-flash";
+const MAX_OUTPUT_TOKENS = 700;
+const MAX_HISTORY_MESSAGES = 16; // caps how much of the conversation we forward
 const MAX_CONTEXT_CHARS = 6000; // caps the data-summary block the client can send
 
 const SYSTEM_PROMPT = `You are Khanyiso, a friendly assistant built into a personal budgeting app.
@@ -61,7 +71,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Sign in required." }, 401);
 
-    // Verify the caller is a real signed-in user of this app before we spend API credit.
+    // Verify the caller is a real signed-in user of this app before we spend quota.
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -75,7 +85,8 @@ Deno.serve(async (req) => {
 
     let { messages, context } = payload as { messages: { role: string; content: string }[]; context?: string };
 
-    // Keep cost/latency bounded regardless of what the client sends.
+    // Keep request size bounded regardless of what the client sends - the
+    // free tier's per-minute quota is shared across every user of the app.
     messages = messages.slice(-MAX_HISTORY_MESSAGES).map((m) => ({
       role: m.role === "assistant" ? "assistant" : "user",
       content: String(m.content ?? "").slice(0, 4000),
@@ -84,30 +95,37 @@ Deno.serve(async (req) => {
 
     const system = SYSTEM_PROMPT + "\n\n--- CURRENT USER DATA ---\n" + context;
 
-    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system,
-        messages,
-      }),
-    });
+    // Gemini has no separate "assistant" role - it uses "model".
+    const contents = messages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
 
-    const data = await anthropicResp.json();
-    if (!anthropicResp.ok) {
-      console.error("Anthropic error:", data);
+    const geminiResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents,
+          generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+        }),
+      },
+    );
+
+    const data = await geminiResp.json();
+
+    if (!geminiResp.ok) {
+      console.error("Gemini error:", data);
+      if (geminiResp.status === 429) {
+        return json({ error: "Khanyiso is busy right now (free tier limit reached). Try again in a minute." }, 429);
+      }
       return json({ error: "Khanyiso is having trouble right now. Try again shortly." }, 502);
     }
 
-    const reply = (data.content || [])
-      .filter((b: { type: string }) => b.type === "text")
-      .map((b: { text: string }) => b.text)
+    const reply = (data.candidates?.[0]?.content?.parts || [])
+      .map((p: { text?: string }) => p.text || "")
       .join("\n")
       .trim();
 
@@ -117,3 +135,4 @@ Deno.serve(async (req) => {
     return json({ error: "Something went wrong." }, 500);
   }
 });
+
