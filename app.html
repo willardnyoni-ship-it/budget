@@ -344,7 +344,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 
 <!-- ================= BUDGET ================= -->
 <section class="tab" id="t-setup">
-  <div class="row"><h1>Setup</h1><button class="b g sm" style="width:auto;padding:8px 10px" onclick="showSetupNav()" aria-label="Jump to section"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button></div>
+  <div class="row"><h1>Setup</h1><button class="b g sm" style="width:auto;padding:8px 10px" onclick="showSetupNav()" aria-label="Open setup menu"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button></div>
   <div class="sub">Income, pay day and category targets.</div>
 
   <div class="card" id="setupCard">
@@ -390,67 +390,6 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <div class="mini" id="saveRate" style="margin-top:6px"></div>
   </div>
 
-  <h2 id="secTargets">Targets</h2>
-  <div class="card" id="budList"></div>
-
-  <div class="card">
-    <label>Add a category</label>
-    <div class="row"><input id="newCat" placeholder="Name"><input id="newAmt" type="number" inputmode="decimal" placeholder="R" style="max-width:110px"></div>
-    <div style="height:10px"></div>
-    <button class="b g" onclick="addCat()">Add category</button>
-  </div>
-
-  <h2 id="secAccount">Account</h2>
-  <div class="card" id="authCard">
-    <div class="row" style="margin-bottom:8px">
-      <div style="font-weight:700">Sign in</div>
-      <div class="mini" id="authStatus">signed out</div>
-    </div>
-    <div class="mini" style="margin-bottom:10px">Signing in syncs your data so it's there on your other
-    devices too. The app works fully without an account &mdash; and this is <b>never</b> a bank login.</div>
-    <div id="authForm">
-      <label>Email</label><input id="auEmail" type="email" autocomplete="email" placeholder="you@example.com">
-      <label>Password</label><input id="auPass" type="password" autocomplete="current-password" placeholder="at least 6 characters">
-      <div style="height:12px"></div>
-      <button class="b" onclick="doSignIn()">Sign in</button>
-      <div style="height:8px"></div>
-      <button class="b g" onclick="doSignUp()">Create an account</button>
-      <div style="height:8px"></div>
-      <button class="b g sm" onclick="doForgotPassword()" style="width:100%">Forgot password?</button>
-    </div>
-    <div id="authOut" style="display:none">
-      <div class="mini" id="acctSyncStatus" style="margin-bottom:10px">not synced yet</div>
-      <button class="b g" onclick="syncNow()">Sync now</button>
-      <div style="height:8px"></div>
-      <button class="b g" onclick="signOut()">Sign out</button>
-    </div>
-  </div>
-
-  <h2 id="secLock">Lock this device</h2>
-  <div class="card">
-    <div class="row" style="margin-bottom:8px">
-      <div style="font-weight:700">App lock</div>
-      <div class="mini" id="lockState"></div>
-    </div>
-    <div class="mini" style="margin-bottom:10px">Asks for a PIN or passphrase when the app opens.
-    It is a gate on this device, not encryption of the stored data &mdash; it stops someone picking up
-    your phone and reading your finances, but it is not protection against a determined attacker
-    with the handset.</div>
-    <button class="b" id="lockBtn" onclick="lockCfg.on ? clearLock() : setLock()"></button>
-  </div>
-
-
-  <h2 id="secWindfall">When money lands</h2>
-  <div class="card">
-    <div class="mini" style="margin-bottom:10px">Decide now what happens to a bonus, a refund or
-    any unusual lump sum &mdash; so the decision is already made when it arrives.</div>
-    <label>Treat anything above (R)</label>
-    <input id="wfThresh" type="number" inputmode="decimal" onchange="setWindfall()">
-    <label>Straight to savings (%)</label>
-    <input id="wfPct" type="number" inputmode="decimal" min="0" max="100" onchange="setWindfall()">
-    <div class="mini" id="wfNote" style="margin-top:8px"></div>
-  </div>
-
   <h2>Your data</h2>
   <div class="card">
     <div style="font-weight:700;margin-bottom:8px">&#128274; On this device only</div>
@@ -476,72 +415,6 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     Run this after restoring a setup file or adding rules.</div>
   </div>
 
-  <h2 id="secTax">Tax deductions</h2>
-  <div class="card">
-    <div class="mini" style="margin-bottom:10px">Capture what you can claim on your ITR12 as you go, so it's
-    ready when you file. This does not submit anything to SARS &mdash; it prepares the numbers for you to
-    enter yourself on eFiling or the SARS MobiApp.</div>
-    <label>Tax year</label>
-    <select id="taxYearSel" onchange="setTaxYear(this.value)"></select>
-    <div style="height:6px"></div>
-    <label>Retirement annuity contributions (R, for the year)</label>
-    <input id="dedRa" type="number" inputmode="decimal" onchange="setDeduction('ra',this.value)">
-    <label>Medical aid contributions (R, for the year)</label>
-    <input id="dedMedAid" type="number" inputmode="decimal" onchange="setDeduction('medAid',this.value)">
-    <label>Medical expenses you paid yourself, not through your scheme (R)</label>
-    <input id="dedMedOop" type="number" inputmode="decimal" onchange="setDeduction('medOOP',this.value)">
-    <label>Donations to a registered public benefit organisation (R)</label>
-    <input id="dedDonations" type="number" inputmode="decimal" onchange="setDeduction('donations',this.value)">
-    <label>Section 18A certificate reference(s) <span class="mini">(optional, for your own records)</span></label>
-    <input id="dedDonationRef" type="text" onchange="setDeduction('donationRef',this.value)">
-
-    <div class="row" style="margin-top:10px">
-      <input type="checkbox" id="dedTravel" style="width:22px;height:22px;flex:0 0 auto" onchange="setDeduction('travel',this.checked)">
-      <div style="margin-left:8px">I get a travel allowance</div>
-    </div>
-    <div id="travelBox" style="display:none">
-      <label>Business km (from your logbook)</label>
-      <input id="dedBizKm" type="number" inputmode="decimal" onchange="setDeduction('businessKm',this.value)">
-      <label>Total km travelled</label>
-      <input id="dedTotalKm" type="number" inputmode="decimal" onchange="setDeduction('totalKm',this.value)">
-      <div class="mini" style="margin-top:4px">SARS works out the rand value from its deemed cost tables
-      based on your vehicle &mdash; this just keeps your logbook totals in one place.</div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <input type="checkbox" id="dedHome" style="width:22px;height:22px;flex:0 0 auto" onchange="setDeduction('homeOffice',this.checked)">
-      <div style="margin-left:8px">I claim home office expenses</div>
-    </div>
-    <div id="homeBox" style="display:none">
-      <label>% of your home used for work</label>
-      <input id="dedHomePct" type="number" inputmode="decimal" min="0" max="100" onchange="setDeduction('homeOfficePct',this.value)">
-      <div class="mini" style="margin-top:4px">Only claimable if you work mainly from a dedicated space at
-      home &mdash; SARS's rules here are strict, so check you qualify before relying on this.</div>
-    </div>
-
-    <div style="height:10px"></div>
-    <button class="b g" onclick="showTaxExport()">Preview tax summary</button>
-    <div style="height:8px"></div>
-    <button class="b g" onclick="exportTaxXls()">Download as Excel (.xls)</button>
-    <div class="mini" style="margin-top:10px">This is a personal record to help you file &mdash; not tax
-    advice, and nothing here is submitted to SARS automatically.</div>
-  </div>
-
-  <h2 id="secData">Data</h2>
-  <div class="card">
-    <div class="mini" id="storeInfo" style="margin-bottom:10px"></div>
-    <button class="b g" onclick="exportData()">Export backup (JSON)</button>
-    <div style="height:8px"></div>
-    <button class="b g" onclick="document.getElementById('impJson').click()">Restore from backup</button>
-    <input type="file" id="impJson" accept=".json,application/json,text/plain,*/*" style="display:none">
-    <div style="height:8px"></div>
-    <button class="b g" onclick="exportCsv()">Export transactions (CSV)</button>
-    <div style="height:8px"></div>
-    <button class="b g" onclick="purgePhotos()">Delete slip photos older than 90 days</button>
-    <div style="height:8px"></div>
-    <button class="b d" onclick="wipe()">Erase everything</button>
-    <div class="mini" style="margin-top:10px">Data lives only in this browser. The JSON backup does not include photos &mdash; those stay on the device.</div>
-  </div>
   <div style="height:20px"></div>
 </section>
 
@@ -556,6 +429,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   <button data-t="insight"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V10M12 19V5M19 19v-7"/></svg></div>Insights</button>
   <button data-t="setup"><div><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.5-2-3.4-2.4 1a7.6 7.6 0 00-1.7-1L15 3h-6l-.3 2.6a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.4L4.6 11a7.6 7.6 0 000 2l-2 1.5 2 3.4 2.4-1a7.6 7.6 0 001.7 1L9 21h6l.3-2.6a7.6 7.6 0 001.7-1l2.4 1 2-3.4z"/></svg></div>Setup</button>
 </nav>
+<input type="file" id="impJson" accept=".json,application/json,text/plain,*/*" style="display:none">
 
 <div id="lockScreen" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);
      align-items:center;justify-content:center;padding:24px">
@@ -2029,7 +1903,8 @@ function render(){
   document.getElementById('saveRate').textContent = S.income
     ? (sv>=0 ? Math.round(sv/S.income*100)+'% savings rate' : 'Budget exceeds income by '+R(-sv)) : '';
 
-  document.getElementById('budList').innerHTML = S.cats.map((x,i)=>
+  const budListEl = document.getElementById('budList');
+  if(budListEl) budListEl.innerHTML = S.cats.map((x,i)=>
      '<div class="cat"><div class="row">'
     +'<div style="flex:1"><div class="n">'+esc(x.n)+'</div>'
     +'<div class="mini">'+(x.base!=null?'was '+R(x.base)+'/mo':'&nbsp;')
@@ -3273,21 +3148,151 @@ document.getElementById('impJson').onchange = e =>{
 };
 function showSetupNav(){
   const items = [
-    ['secTargets','Targets'],
-    ['secAccount','Account'],
-    ['secLock','Lock this device'],
-    ['secWindfall','When money lands'],
-    ['secTax','Tax deductions'],
-    ['secData','Data']
+    ['openTargetsSheet','Targets'],
+    ['openAccountSheet','Account'],
+    ['openLockSheet','Lock this device'],
+    ['openWindfallSheet','When money lands'],
+    ['openTaxSheet','Tax deductions'],
+    ['openDataSheet','Data']
   ];
-  openSheet('<div class="row"><h1>Jump to</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
-    + '<div class="sub">Setup is a long page &mdash; jump straight to a section.</div>'
-    + items.map(([id,label])=>'<button class="b g" style="margin-top:8px;text-align:left" '
-      +'onclick="jumpToSetup(&quot;'+id+'&quot;)">'+esc(label)+'</button>').join(''));
+  openSheet('<div class="row"><h1>Setup menu</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="sub">Open any section on its own &mdash; nothing sits on the main page.</div>'
+    + items.map(([fn,label])=>'<button class="b g" style="margin-top:8px;text-align:left" '
+      +'onclick="'+fn+'()">'+esc(label)+'</button>').join(''));
 }
-function jumpToSetup(id){
-  closeSheet();
-  requestAnimationFrame(()=>{ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); });
+function openTargetsSheet(){
+  openSheet('<div class="row"><h1>Targets</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="card" id="budList"></div>'
+    + '<div class="card">'
+    +   '<label>Add a category</label>'
+    +   '<div class="row"><input id="newCat" placeholder="Name"><input id="newAmt" type="number" inputmode="decimal" placeholder="R" style="max-width:110px"></div>'
+    +   '<div style="height:10px"></div>'
+    +   '<button class="b g" onclick="addCat()">Add category</button>'
+    + '</div>');
+  render();
+}
+function openAccountSheet(){
+  openSheet('<div class="row"><h1>Account</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="card" id="authCard">'
+    +   '<div class="row" style="margin-bottom:8px">'
+    +     '<div style="font-weight:700">Sign in</div>'
+    +     '<div class="mini" id="authStatus">signed out</div>'
+    +   '</div>'
+    +   '<div class="mini" style="margin-bottom:10px">Signing in syncs your data so it\'s there on your other '
+    +   'devices too. The app works fully without an account &mdash; and this is <b>never</b> a bank login.</div>'
+    +   '<div id="authForm">'
+    +     '<label>Email</label><input id="auEmail" type="email" autocomplete="email" placeholder="you@example.com">'
+    +     '<label>Password</label><input id="auPass" type="password" autocomplete="current-password" placeholder="at least 6 characters">'
+    +     '<div style="height:12px"></div>'
+    +     '<button class="b" onclick="doSignIn()">Sign in</button>'
+    +     '<div style="height:8px"></div>'
+    +     '<button class="b g" onclick="doSignUp()">Create an account</button>'
+    +     '<div style="height:8px"></div>'
+    +     '<button class="b g sm" onclick="doForgotPassword()" style="width:100%">Forgot password?</button>'
+    +   '</div>'
+    +   '<div id="authOut" style="display:none">'
+    +     '<div class="mini" id="acctSyncStatus" style="margin-bottom:10px">not synced yet</div>'
+    +     '<button class="b g" onclick="syncNow()">Sync now</button>'
+    +     '<div style="height:8px"></div>'
+    +     '<button class="b g" onclick="signOut()">Sign out</button>'
+    +   '</div>'
+    + '</div>');
+  render();
+}
+function openLockSheet(){
+  openSheet('<div class="row"><h1>Lock this device</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="card">'
+    +   '<div class="row" style="margin-bottom:8px">'
+    +     '<div style="font-weight:700">App lock</div>'
+    +     '<div class="mini" id="lockState"></div>'
+    +   '</div>'
+    +   '<div class="mini" style="margin-bottom:10px">Asks for a PIN or passphrase when the app opens. '
+    +   'It is a gate on this device, not encryption of the stored data &mdash; it stops someone picking up '
+    +   'your phone and reading your finances, but it is not protection against a determined attacker '
+    +   'with the handset.</div>'
+    +   '<button class="b" id="lockBtn" onclick="lockCfg.on ? clearLock() : setLock()"></button>'
+    + '</div>');
+  render();
+}
+function openWindfallSheet(){
+  openSheet('<div class="row"><h1>When money lands</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="card">'
+    +   '<div class="mini" style="margin-bottom:10px">Decide now what happens to a bonus, a refund or '
+    +   'any unusual lump sum &mdash; so the decision is already made when it arrives.</div>'
+    +   '<label>Treat anything above (R)</label>'
+    +   '<input id="wfThresh" type="number" inputmode="decimal" onchange="setWindfall()">'
+    +   '<label>Straight to savings (%)</label>'
+    +   '<input id="wfPct" type="number" inputmode="decimal" min="0" max="100" onchange="setWindfall()">'
+    +   '<div class="mini" id="wfNote" style="margin-top:8px"></div>'
+    + '</div>');
+  render();
+}
+function openTaxSheet(){
+  openSheet('<div class="row"><h1>Tax deductions</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="card">'
+    +   '<div class="mini" style="margin-bottom:10px">Capture what you can claim on your ITR12 as you go, so it\'s '
+    +   'ready when you file. This does not submit anything to SARS &mdash; it prepares the numbers for you to '
+    +   'enter yourself on eFiling or the SARS MobiApp.</div>'
+    +   '<label>Tax year</label>'
+    +   '<select id="taxYearSel" onchange="setTaxYear(this.value)"></select>'
+    +   '<div style="height:6px"></div>'
+    +   '<label>Retirement annuity contributions (R, for the year)</label>'
+    +   '<input id="dedRa" type="number" inputmode="decimal" onchange="setDeduction(&quot;ra&quot;,this.value)">'
+    +   '<label>Medical aid contributions (R, for the year)</label>'
+    +   '<input id="dedMedAid" type="number" inputmode="decimal" onchange="setDeduction(&quot;medAid&quot;,this.value)">'
+    +   '<label>Medical expenses you paid yourself, not through your scheme (R)</label>'
+    +   '<input id="dedMedOop" type="number" inputmode="decimal" onchange="setDeduction(&quot;medOOP&quot;,this.value)">'
+    +   '<label>Donations to a registered public benefit organisation (R)</label>'
+    +   '<input id="dedDonations" type="number" inputmode="decimal" onchange="setDeduction(&quot;donations&quot;,this.value)">'
+    +   '<label>Section 18A certificate reference(s) <span class="mini">(optional, for your own records)</span></label>'
+    +   '<input id="dedDonationRef" type="text" onchange="setDeduction(&quot;donationRef&quot;,this.value)">'
+    +   '<div class="row" style="margin-top:10px">'
+    +     '<input type="checkbox" id="dedTravel" style="width:22px;height:22px;flex:0 0 auto" onchange="setDeduction(&quot;travel&quot;,this.checked)">'
+    +     '<div style="margin-left:8px">I get a travel allowance</div>'
+    +   '</div>'
+    +   '<div id="travelBox" style="display:none">'
+    +     '<label>Business km (from your logbook)</label>'
+    +     '<input id="dedBizKm" type="number" inputmode="decimal" onchange="setDeduction(&quot;businessKm&quot;,this.value)">'
+    +     '<label>Total km travelled</label>'
+    +     '<input id="dedTotalKm" type="number" inputmode="decimal" onchange="setDeduction(&quot;totalKm&quot;,this.value)">'
+    +     '<div class="mini" style="margin-top:4px">SARS works out the rand value from its deemed cost tables '
+    +     'based on your vehicle &mdash; this just keeps your logbook totals in one place.</div>'
+    +   '</div>'
+    +   '<div class="row" style="margin-top:10px">'
+    +     '<input type="checkbox" id="dedHome" style="width:22px;height:22px;flex:0 0 auto" onchange="setDeduction(&quot;homeOffice&quot;,this.checked)">'
+    +     '<div style="margin-left:8px">I claim home office expenses</div>'
+    +   '</div>'
+    +   '<div id="homeBox" style="display:none">'
+    +     '<label>% of your home used for work</label>'
+    +     '<input id="dedHomePct" type="number" inputmode="decimal" min="0" max="100" onchange="setDeduction(&quot;homeOfficePct&quot;,this.value)">'
+    +     '<div class="mini" style="margin-top:4px">Only claimable if you work mainly from a dedicated space at '
+    +     'home &mdash; SARS\'s rules here are strict, so check you qualify before relying on this.</div>'
+    +   '</div>'
+    +   '<div style="height:10px"></div>'
+    +   '<button class="b g" onclick="showTaxExport()">Preview tax summary</button>'
+    +   '<div style="height:8px"></div>'
+    +   '<button class="b g" onclick="exportTaxXls()">Download as Excel (.xls)</button>'
+    +   '<div class="mini" style="margin-top:10px">This is a personal record to help you file &mdash; not tax '
+    +   'advice, and nothing here is submitted to SARS automatically.</div>'
+    + '</div>');
+  render();
+}
+function openDataSheet(){
+  openSheet('<div class="row"><h1>Data</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="card">'
+    +   '<div class="mini" id="storeInfo" style="margin-bottom:10px"></div>'
+    +   '<button class="b g" onclick="exportData()">Export backup (JSON)</button>'
+    +   '<div style="height:8px"></div>'
+    +   '<button class="b g" onclick="document.getElementById(&quot;impJson&quot;).click()">Restore from backup</button>'
+    +   '<div style="height:8px"></div>'
+    +   '<button class="b g" onclick="exportCsv()">Export transactions (CSV)</button>'
+    +   '<div style="height:8px"></div>'
+    +   '<button class="b g" onclick="purgePhotos()">Delete slip photos older than 90 days</button>'
+    +   '<div style="height:8px"></div>'
+    +   '<button class="b d" onclick="wipe()">Erase everything</button>'
+    +   '<div class="mini" style="margin-top:10px">Data lives only in this browser. The JSON backup does not include photos &mdash; those stay on the device.</div>'
+    + '</div>');
+  render();
 }
 function pasteSetup(){
   openSheet(
