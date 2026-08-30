@@ -476,6 +476,57 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     Run this after restoring a setup file or adding rules.</div>
   </div>
 
+  <h2>Tax deductions</h2>
+  <div class="card">
+    <div class="mini" style="margin-bottom:10px">Capture what you can claim on your ITR12 as you go, so it's
+    ready when you file. This does not submit anything to SARS &mdash; it prepares the numbers for you to
+    enter yourself on eFiling or the SARS MobiApp.</div>
+    <label>Tax year</label>
+    <select id="taxYearSel" onchange="setTaxYear(this.value)"></select>
+    <div style="height:6px"></div>
+    <label>Retirement annuity contributions (R, for the year)</label>
+    <input id="dedRa" type="number" inputmode="decimal" onchange="setDeduction('ra',this.value)">
+    <label>Medical aid contributions (R, for the year)</label>
+    <input id="dedMedAid" type="number" inputmode="decimal" onchange="setDeduction('medAid',this.value)">
+    <label>Medical expenses you paid yourself, not through your scheme (R)</label>
+    <input id="dedMedOop" type="number" inputmode="decimal" onchange="setDeduction('medOOP',this.value)">
+    <label>Donations to a registered public benefit organisation (R)</label>
+    <input id="dedDonations" type="number" inputmode="decimal" onchange="setDeduction('donations',this.value)">
+    <label>Section 18A certificate reference(s) <span class="mini">(optional, for your own records)</span></label>
+    <input id="dedDonationRef" type="text" onchange="setDeduction('donationRef',this.value)">
+
+    <div class="row" style="margin-top:10px">
+      <input type="checkbox" id="dedTravel" style="width:22px;height:22px;flex:0 0 auto" onchange="setDeduction('travel',this.checked)">
+      <div style="margin-left:8px">I get a travel allowance</div>
+    </div>
+    <div id="travelBox" style="display:none">
+      <label>Business km (from your logbook)</label>
+      <input id="dedBizKm" type="number" inputmode="decimal" onchange="setDeduction('businessKm',this.value)">
+      <label>Total km travelled</label>
+      <input id="dedTotalKm" type="number" inputmode="decimal" onchange="setDeduction('totalKm',this.value)">
+      <div class="mini" style="margin-top:4px">SARS works out the rand value from its deemed cost tables
+      based on your vehicle &mdash; this just keeps your logbook totals in one place.</div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <input type="checkbox" id="dedHome" style="width:22px;height:22px;flex:0 0 auto" onchange="setDeduction('homeOffice',this.checked)">
+      <div style="margin-left:8px">I claim home office expenses</div>
+    </div>
+    <div id="homeBox" style="display:none">
+      <label>% of your home used for work</label>
+      <input id="dedHomePct" type="number" inputmode="decimal" min="0" max="100" onchange="setDeduction('homeOfficePct',this.value)">
+      <div class="mini" style="margin-top:4px">Only claimable if you work mainly from a dedicated space at
+      home &mdash; SARS's rules here are strict, so check you qualify before relying on this.</div>
+    </div>
+
+    <div style="height:10px"></div>
+    <button class="b g" onclick="showTaxExport()">Preview tax summary</button>
+    <div style="height:8px"></div>
+    <button class="b g" onclick="exportTaxXls()">Download as Excel (.xls)</button>
+    <div class="mini" style="margin-top:10px">This is a personal record to help you file &mdash; not tax
+    advice, and nothing here is submitted to SARS automatically.</div>
+  </div>
+
   <h2>Data</h2>
   <div class="card">
     <div class="mini" id="storeInfo" style="margin-bottom:10px"></div>
@@ -583,6 +634,8 @@ const DEFAULTS = {
   flows: [],                   /* savings / income movements pulled from statements */
   setupDone: false,
   rules: [],                   /* your own merchant -> category rules, loaded from backup */
+  taxDeductions: {},       /* SA tax year (e.g. '2026-2027') -> deduction figures for that year */
+  taxYearSel: '',          /* last-viewed tax year in Setup; '' = current tax year */
   shortcuts: [
     {l:'Coffee',     a:35,  c:'Eating out'},
     {l:'Groceries',  a:150, c:'Groceries'},
@@ -711,6 +764,36 @@ const iso = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString
 const esc = s => String(s??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const dayDiff = (a,b) => Math.round((new Date(a+'T12:00:00') - new Date(b+'T12:00:00'))/86400000);
+
+/* ---------- SA tax year (1 Mar - 28/29 Feb) + individual tax-deduction tracking ---------- */
+function saTaxYear(d){
+  d = d || new Date();
+  const y = d.getFullYear();
+  return d.getMonth() >= 2 ? (y+'-'+(y+1)) : ((y-1)+'-'+y);
+}
+function taxYearLabel(ty){ const p = ty.split('-'); return '1 Mar '+p[0]+' - 28 Feb '+p[1]; }
+function activeTaxYear(){ return S.taxYearSel || saTaxYear(); }
+function taxYearsAvailable(){
+  const set = new Set(Object.keys(S.taxDeductions||{}));
+  set.add(saTaxYear());
+  return [...set].sort().reverse();
+}
+function blankDeductions(){
+  return { ra:0, medAid:0, medOOP:0, donations:0, donationRef:'',
+    travel:false, businessKm:0, totalKm:0, homeOffice:false, homeOfficePct:0 };
+}
+function deductionsFor(ty){
+  if(!S.taxDeductions[ty]) S.taxDeductions[ty] = blankDeductions();
+  return S.taxDeductions[ty];
+}
+function setTaxYear(ty){ S.taxYearSel = ty; render(); }
+function setDeduction(k, v){
+  const dd = deductionsFor(activeTaxYear());
+  if(k==='donationRef') dd[k] = v;
+  else if(k==='travel' || k==='homeOffice') dd[k] = !!v;
+  else dd[k] = parseFloat(v)||0;
+  save(); render();
+}
 
 let cycleOffset = 0;                 /* 0 = current cycle, -1 = previous, ... */
 function cycleAt(off){
@@ -1973,6 +2056,25 @@ function render(){
       + (da.ahead>=0 ? R(da.ahead)+' ahead' : R(-da.ahead)+' behind')+'</div></div>';
   }
 
+  const tySel = document.getElementById('taxYearSel');
+  if(tySel){
+    const years = taxYearsAvailable(), ay = activeTaxYear();
+    tySel.innerHTML = years.map(y=>'<option value="'+y+'"'+(y===ay?' selected':'')+'>'
+      +taxYearLabel(y)+(y===saTaxYear()?' (current)':'')+'</option>').join('');
+    const dd = deductionsFor(ay);
+    document.getElementById('dedRa').value = dd.ra || '';
+    document.getElementById('dedMedAid').value = dd.medAid || '';
+    document.getElementById('dedMedOop').value = dd.medOOP || '';
+    document.getElementById('dedDonations').value = dd.donations || '';
+    document.getElementById('dedDonationRef').value = dd.donationRef || '';
+    document.getElementById('dedTravel').checked = !!dd.travel;
+    document.getElementById('dedBizKm').value = dd.businessKm || '';
+    document.getElementById('dedTotalKm').value = dd.totalKm || '';
+    document.getElementById('travelBox').style.display = dd.travel ? '' : 'none';
+    document.getElementById('dedHome').checked = !!dd.homeOffice;
+    document.getElementById('dedHomePct').value = dd.homeOfficePct || '';
+    document.getElementById('homeBox').style.display = dd.homeOffice ? '' : 'none';
+  }
   renderShortcuts(); renderInsights(); renderMatch(); storeInfo();
   checkMilestones();
 }
@@ -3097,6 +3199,62 @@ function exportCsv(){
       .map(t=>[t.d, t.a.toFixed(2), t.c, (t.note||'').replace(/"/g,"'"), t.src||'', t.rec?'yes':'no']));
   dl(new Blob([rows.map(r=>r.map(v=>'"'+v+'"').join(',')).join('\n')],{type:'text/csv'}),
      'transactions-'+iso(new Date())+'.csv');
+}
+function showTaxExport(){
+  const ty = activeTaxYear(), dd = deductionsFor(ty);
+  const rows = [
+    ['Retirement annuity contributions', R(dd.ra), 'Retirement annuity fund contributions &mdash; source code 4006.'],
+    ['Medical aid contributions', R(dd.medAid), 'Medical scheme contributions &mdash; source code 4005 (also on your medical scheme tax certificate).'],
+    ['Medical expenses paid yourself', R(dd.medOOP), 'Qualifying medical expenses paid outside your scheme &mdash; source code 4034. Check these are not already on your scheme certificate under code 4020.'],
+    ['Donations to a registered PBO', R(dd.donations), 'Enter under Donations in the Deductions section of your return, and keep your section 18A certificate on file.'
+      + (dd.donationRef ? (' Ref: '+esc(dd.donationRef)+'.') : '')]
+  ];
+  if(dd.travel) rows.push(['Travel allowance &mdash; business km', esc(String(dd.businessKm))+' km of '+esc(String(dd.totalKm))+' km total',
+    'SARS calculates the deemed-cost deduction from these logbook totals and your vehicle value &mdash; enter them where eFiling asks for your logbook figures.']);
+  if(dd.homeOffice) rows.push(['Home office', esc(String(dd.homeOfficePct))+'% of home used for work',
+    'Only claimable if you work mainly from a dedicated space at home &mdash; confirm you qualify before claiming.']);
+
+  const html = '<!doctype html><html><head><meta charset="utf-8"><title>Tax summary '+ty+'</title>'
+    + '<style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:640px;margin:32px auto;padding:0 16px;color:#111}'
+    + 'h1{font-size:20px}table{width:100%;border-collapse:collapse;margin-top:16px}'
+    + 'td,th{padding:8px 6px;border-bottom:1px solid #ddd;text-align:left;font-size:14px;vertical-align:top}'
+    + 'th{color:#666;font-weight:600}.mini{color:#666;font-size:12px;line-height:1.5;margin-top:16px}'
+    + '.btn{margin-top:20px;padding:10px 16px;border:0;background:#111;color:#fff;border-radius:8px;font-size:14px}'
+    + '@media print{.btn{display:none}}</style></head><body>'
+    + '<h1>Tax summary &middot; '+taxYearLabel(ty)+'</h1>'
+    + '<div class="mini" style="margin-top:0">Generated from your budgeting app on '+iso(new Date())+'. '
+    + 'This is a personal record to help you file your own ITR12 &mdash; it is not tax advice, is not checked '
+    + 'by SARS or a tax practitioner, and nothing here is submitted to SARS automatically. Confirm figures '
+    + 'against your own certificates before filing.</div>'
+    + '<table><tr><th>Item</th><th>Amount</th><th>Where it goes on your return</th></tr>'
+    + rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')
+    + '</table><button class="btn" onclick="window.print()">Print / Save as PDF</button></body></html>';
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Allow pop-ups to preview the tax summary.'); return; }
+  w.document.write(html); w.document.close();
+}
+function exportTaxXls(){
+  const ty = activeTaxYear(), dd = deductionsFor(ty);
+  const rows = [
+    ['Item','Amount','Notes'],
+    ['Retirement annuity contributions', dd.ra, 'Source code 4006'],
+    ['Medical aid contributions', dd.medAid, 'Source code 4005'],
+    ['Medical expenses paid yourself', dd.medOOP, 'Source code 4034 - not already on your scheme certificate (4020)'],
+    ['Donations to a registered PBO', dd.donations, 'Section 18A certificate' + (dd.donationRef ? (': '+dd.donationRef) : '')]
+  ];
+  if(dd.travel) rows.push(['Business km', dd.businessKm, 'of '+dd.totalKm+' km total']);
+  if(dd.homeOffice) rows.push(['Home office %', dd.homeOfficePct, '% of home used for work']);
+
+  const cell = v => typeof v==='number'
+    ? '<Cell><Data ss:Type="Number">'+v+'</Data></Cell>'
+    : '<Cell><Data ss:Type="String">'+esc(v)+'</Data></Cell>';
+  const xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>'
+    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
+    + '<Worksheet ss:Name="Tax summary"><Table>'
+    + rows.map(r=>'<Row>'+r.map(cell).join('')+'</Row>').join('')
+    + '</Table></Worksheet></Workbook>';
+  dl(new Blob([xml],{type:'application/vnd.ms-excel'}), 'tax-summary-'+ty+'.xls');
 }
 function dl(blob, name){
   const u = URL.createObjectURL(blob), a = document.createElement('a');
