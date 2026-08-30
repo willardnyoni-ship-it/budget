@@ -344,7 +344,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
 
 <!-- ================= BUDGET ================= -->
 <section class="tab" id="t-setup">
-  <h1>Setup</h1>
+  <div class="row"><h1>Setup</h1><button class="b g sm" style="width:auto;padding:8px 10px" onclick="showSetupNav()" aria-label="Jump to section"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button></div>
   <div class="sub">Income, pay day and category targets.</div>
 
   <div class="card" id="setupCard">
@@ -390,7 +390,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <div class="mini" id="saveRate" style="margin-top:6px"></div>
   </div>
 
-  <h2>Targets</h2>
+  <h2 id="secTargets">Targets</h2>
   <div class="card" id="budList"></div>
 
   <div class="card">
@@ -400,7 +400,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     <button class="b g" onclick="addCat()">Add category</button>
   </div>
 
-  <h2>Account</h2>
+  <h2 id="secAccount">Account</h2>
   <div class="card" id="authCard">
     <div class="row" style="margin-bottom:8px">
       <div style="font-weight:700">Sign in</div>
@@ -426,7 +426,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     </div>
   </div>
 
-  <h2>Lock this device</h2>
+  <h2 id="secLock">Lock this device</h2>
   <div class="card">
     <div class="row" style="margin-bottom:8px">
       <div style="font-weight:700">App lock</div>
@@ -440,7 +440,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
   </div>
 
 
-  <h2>When money lands</h2>
+  <h2 id="secWindfall">When money lands</h2>
   <div class="card">
     <div class="mini" style="margin-bottom:10px">Decide now what happens to a bonus, a refund or
     any unusual lump sum &mdash; so the decision is already made when it arrives.</div>
@@ -476,7 +476,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     Run this after restoring a setup file or adding rules.</div>
   </div>
 
-  <h2>Tax deductions</h2>
+  <h2 id="secTax">Tax deductions</h2>
   <div class="card">
     <div class="mini" style="margin-bottom:10px">Capture what you can claim on your ITR12 as you go, so it's
     ready when you file. This does not submit anything to SARS &mdash; it prepares the numbers for you to
@@ -527,7 +527,7 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--dim);background:var(--card2)
     advice, and nothing here is submitted to SARS automatically.</div>
   </div>
 
-  <h2>Data</h2>
+  <h2 id="secData">Data</h2>
   <div class="card">
     <div class="mini" id="storeInfo" style="margin-bottom:10px"></div>
     <button class="b g" onclick="exportData()">Export backup (JSON)</button>
@@ -3271,6 +3271,24 @@ document.getElementById('impJson').onchange = e =>{
   };
   r.readAsText(f);
 };
+function showSetupNav(){
+  const items = [
+    ['secTargets','Targets'],
+    ['secAccount','Account'],
+    ['secLock','Lock this device'],
+    ['secWindfall','When money lands'],
+    ['secTax','Tax deductions'],
+    ['secData','Data']
+  ];
+  openSheet('<div class="row"><h1>Jump to</h1><button class="b g sm" onclick="closeSheet()">Close</button></div>'
+    + '<div class="sub">Setup is a long page &mdash; jump straight to a section.</div>'
+    + items.map(([id,label])=>'<button class="b g" style="margin-top:8px;text-align:left" '
+      +'onclick="jumpToSetup(&quot;'+id+'&quot;)">'+esc(label)+'</button>').join(''));
+}
+function jumpToSetup(id){
+  closeSheet();
+  requestAnimationFrame(()=>{ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); });
+}
 function pasteSetup(){
   openSheet(
       '<div class="row"><h1>Paste setup</h1><button class="b g sm" onclick="closeSheet()">Cancel</button></div>'
